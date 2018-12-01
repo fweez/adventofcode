@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["Ryan Forsythe <ryan@pdxcb.net>"]
 
 [dependencies]
+adjustmentlist  = { path = "../adjustmentlist" }
