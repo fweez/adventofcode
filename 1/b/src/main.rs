@@ -1,25 +1,44 @@
 use std::io;
 use std::collections::HashSet;
 
-fn main() {
-    let mut inputs = Vec::new();
+type Adjustment = i32;
+
+struct AdjustmentList {
     
-    loop {
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)
-            .expect("Didn't read line");
-        let item = input.trim();
-        if item.len() == 0 {
-            break
-        }
-        let sign: i32 = match &item[0..1] {
-            "+" => 1,
-            "-" => -1,
-            _ => break
-        };
-        let value = item[1..].parse::<i32>().unwrap() * sign;
-        inputs.push(value);
+}
+
+impl AdjustmentList {
+    fn new() -> AdjustmentList {
+        AdjustmentList { }
     }
+}
+
+impl Iterator for AdjustmentList {
+    type Item = Adjustment;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut input = String::new();
+        match io::stdin().read_line(&mut input) {
+            Err(_error) => return None,
+            Ok(_sz) => {
+                let item = input.trim();
+                if item.len() == 0 {
+                    return None
+                }
+                let sign: i32 = match &item[0..1] {
+                    "+" => 1,
+                    "-" => -1,
+                    _ => return None
+                };
+                let value = item[1..].parse::<i32>().unwrap() * sign;
+                return Some(value);
+            }
+        }
+    }
+}
+
+fn main() {
+    let inputs: Vec<Adjustment> = AdjustmentList::new().collect();
     let mut seen_freqs = HashSet::new();
     let mut accum = 0;
 
@@ -33,5 +52,4 @@ fn main() {
             seen_freqs.insert(accum);
         }
     }
-    
 }
