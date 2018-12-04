@@ -98,43 +98,40 @@ fn main() {
         }   
     }
 
-    let mut stats: Vec<(i32, usize, GuardId)> = Vec::new();
+    let mut stats: Vec<(i32, usize, GuardId, i8)> = Vec::new();
     for (guard, minutes) in &sleep_times {
         let mut asleep_minute_count: i32 = 0;
         let mut most_often_asleep_value = 0;
         let mut most_often_asleep_minute = OUT_OF_BOUNDS;
         for (idx, minute) in minutes.iter().enumerate() {
-            if *minute > 0 { asleep_minute_count += (*minute as i32); }
+            if *minute > 0 { asleep_minute_count += *minute as i32; }
             if *minute > most_often_asleep_value { 
                 most_often_asleep_value = *minute;
                 most_often_asleep_minute = idx; 
             }
         }
-        stats.push((asleep_minute_count, most_often_asleep_minute, *guard));
+        stats.push((asleep_minute_count, most_often_asleep_minute, *guard, most_often_asleep_value));
     }
 
     stats.sort_by_key(|s| s.0);
-    let winner = stats.last().expect("Should have some values in the stats!");
-    println!("guard {} is most asleep ({} minutes), most often at {}. answer: {}",
+    let winner = stats.last().expect("Should have some values in the stats!").clone();
+    println!("part A: guard {} is most asleep ({} minutes), most often at {}. answer: {}",
         winner.2, winner.0, winner.1, (winner.1 as i32) * (winner.2 as i32));
+    stats.sort_by_key(|s| s.3);
+    let winner = stats.last().expect("Should have some values in the stats!");
+    println!("part B: guard {} is most asleep during minute {}, in {} days. answer: {}",
+        winner.2, winner.1, winner.3, (winner.1 as i32) * (winner.2 as i32));
+    
 
     for (guard, minutes) in &sleep_times {
         print!("{}\t", guard);
-        let mut asleep_minute_count: i32 = 0;
-        let mut most_often_asleep_value = 0;
-        let mut most_often_asleep_minute = OUT_OF_BOUNDS;
         for (idx, minute) in minutes.iter().enumerate() {
-            if *minute > 0 { asleep_minute_count += (*minute as i32); }
-            if *minute > most_often_asleep_value { 
-                most_often_asleep_value = *minute;
-                most_often_asleep_minute = idx; 
-            }
             if *minute < 10 {
                 print!("{}", *minute);
             } else {
                 print!("x");
             }
         }
-        print!("\tasleep {} minutes, most often at {}\n", asleep_minute_count, most_often_asleep_minute);
+        print!("\n");
     }
 }
