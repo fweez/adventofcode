@@ -126,8 +126,8 @@ fn main() {
     for (guard, minutes) in &sleep_times {
         print!("{}\t", guard);
         for (idx, minute) in minutes.iter().enumerate() {
-            if *minute < 10 {
-                print!("{}", *minute);
+            if *minute < 16 {
+                print!("{:X}", *minute);
             } else {
                 print!("x");
             }
