@@ -4,22 +4,20 @@ extern crate chrono;
 use chrono::prelude::*;
 use std::collections::HashMap;
 
+type GuardId = i16;
+const NOT_AN_ID: GuardId = -1;
+const OUT_OF_BOUNDS: usize = 99;
+
 enum LogEvent {
-    BeginShift,
+    BeginShift(GuardId),
     Asleep,
     Wake,
 }
 
-type GuardId = i16;
-
 struct LogEntry {
     time: DateTime<Utc>,
-    guard: GuardId,
     event: LogEvent,
 }
-
-const NOT_AN_ID: GuardId = -1;
-const OUT_OF_BOUNDS: usize = 99;
 
 impl LogEntry {
     fn new(input: String) -> LogEntry {
@@ -34,22 +32,22 @@ impl LogEntry {
         let time = Utc.datetime_from_str(date_string, "%Y-%m-%d %H:%M").expect("didn't parse date time!");
 
         let log_string = elements.next().expect("no log string!").to_string();
+
+        
+
         let event = match log_string.trim() {
             "wakes up" => LogEvent::Wake,
             "falls asleep" => LogEvent::Asleep,
-            _ => LogEvent::BeginShift,
-        };
-        let guard = match event {
-            LogEvent::BeginShift => {
+            _ => {
                 let halves: Vec<&str> = log_string.split('#').collect();
-                let words: Vec<&str> = halves[1].split(' ').collect();
+                let words: Vec<&str> = halves.get(1).expect("Didn't have 2 halves!").split(' ').collect();
                 let id_string: &str = words[0];
-                id_string.parse::<GuardId>().expect("guard id didn't parse!")
-            }
-            _ => NOT_AN_ID,
+                let guard = id_string.parse::<GuardId>().expect("guard id didn't parse!");
+                LogEvent::BeginShift(guard)
+            },
         };
 
-        return LogEntry { time, guard, event };
+        return LogEntry { time, event };
     }
 }
 
@@ -69,14 +67,14 @@ fn main() {
     let mut curr_start_time = OUT_OF_BOUNDS;
     for log_entry in log_entries {
         match log_entry.event {
-            LogEvent::BeginShift => {
+            LogEvent::BeginShift(guard_id) => {
                 if curr_start_time != OUT_OF_BOUNDS {
                     let minutes = sleep_times.entry(curr_guard_id).or_insert(new_minutes_array());
                     for minute in curr_start_time..60 {
                         minutes[minute] += 1;
                     }
                 }
-                curr_guard_id = log_entry.guard;
+                curr_guard_id = guard_id;
             }
             LogEvent::Asleep => {
                 curr_start_time = log_entry.time.minute() as usize;
@@ -125,7 +123,7 @@ fn main() {
 
     for (guard, minutes) in &sleep_times {
         print!("{}\t", guard);
-        for (idx, minute) in minutes.iter().enumerate() {
+        for minute in minutes {
             if *minute < 16 {
                 print!("{:X}", *minute);
             } else {
