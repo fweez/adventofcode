@@ -1,5 +1,6 @@
 extern crate inputiterator;
 use inputiterator::inputiterator::InputIterator;
+use std::collections::HashSet;
 
 struct Rect {
     x: usize,
@@ -29,23 +30,26 @@ impl Rect {
 }
 
 struct FabricCell {
-    claims: i32
+    claims: Vec<i32>
 }
 
 const FABRICSIZE: usize = 1500;
 
 fn main() {
     let mut fabric: Vec<Vec<FabricCell>> = Vec::new();
+    let mut seen_ids: HashSet<i32> = HashSet::new();
+
     for i in 0..FABRICSIZE {
         fabric.push(Vec::new());
         for _j in 0..FABRICSIZE {
-            fabric[i].push(FabricCell { claims: 0 });
+            fabric[i].push(FabricCell { claims: Vec::new() });
         }
     }
     for rect in InputIterator::new().map(|s| Rect::new(s)) {
         for i in rect.x..(rect.x + rect.w) {
             for j in rect.y..(rect.y + rect.h) {
-                fabric[i][j].claims += 1;
+                fabric[i][j].claims.push(rect.id);
+                seen_ids.insert(rect.id);
             }
         }
     }
@@ -53,9 +57,15 @@ fn main() {
     let claimedcount = fabric.iter()
         .fold(0, |a, v| a + v.iter()
             .fold(0, |b, cell| -> i32 { 
-                if cell.claims >= 2 { return b + 1 }
-                return b
+                if cell.claims.len() >= 2 {
+                    for id in &cell.claims {
+                       seen_ids.remove(&id);
+                    } 
+                    return b + 1;
+                }
+                return b;
              } ));
     
-    println!("{}", claimedcount);
+    println!("square inches with >1 claim: {}", claimedcount);
+    println!("claim without overlaps: {:?}", seen_ids);
 }
