@@ -32,9 +32,6 @@ impl LogEntry {
         let time = Utc.datetime_from_str(date_string, "%Y-%m-%d %H:%M").expect("didn't parse date time!");
 
         let log_string = elements.next().expect("no log string!").to_string();
-
-        
-
         let event = match log_string.trim() {
             "wakes up" => LogEvent::Wake,
             "falls asleep" => LogEvent::Asleep,
