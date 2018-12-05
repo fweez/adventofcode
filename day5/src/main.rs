@@ -12,7 +12,7 @@ fn destroys(a: u8, b: u8) -> bool {
     ((a as i16) - (b as i16)).abs() == CAPITALIZATION_OFFSET 
 }
 
-fn react(polymer: &Vec<u8>, scrub: Option<u8>) -> usize {
+fn react(polymer: &Vec<u8>, scrub: Option<u8>) -> Vec<u8> {
     let mut output: Vec<u8> = Vec::new();
     let scrub = scrub.unwrap_or(INVALID_CHAR);
     for &next in polymer {
@@ -28,19 +28,20 @@ fn react(polymer: &Vec<u8>, scrub: Option<u8>) -> usize {
             output.push(next);
         }
     }
-    return output.len();
+    return output;
 }
 
 fn main() {
     let file = File::open("input.txt").expect("Couldn't open file!");
     let input = file.bytes().map(|b| b.unwrap()).collect();
     let part_a = react(&input, None);
-    println!("fully reacted polymer len: {}", part_a);
+    println!("fully reacted polymer len: {}", part_a.len());
 
     let mut min_char = INVALID_CHAR;
     let mut min_size = usize::max_value();
     for c in A..Z {
-        let reacted_size = react(&input, Some(c));
+        let reacted = react(&part_a, Some(c));
+        let reacted_size = reacted.len();
         if reacted_size < min_size {
             min_char = c;
             min_size = reacted_size;
