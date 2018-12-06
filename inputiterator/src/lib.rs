@@ -1,5 +1,6 @@
 pub mod inputiterator {
     use std::io;
+    use std::iter::Map;
 
     pub struct InputIterator {
 
@@ -7,6 +8,10 @@ pub mod inputiterator {
 
     impl InputIterator {
         pub fn new() -> InputIterator { return InputIterator { } }
+
+        pub fn transform<B, F>(f: F) -> Map<Self, F> where F: FnMut(String) -> B {
+            return Self::new().map(f);
+        }
     }
 
     impl Iterator for InputIterator {

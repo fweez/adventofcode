@@ -1,0 +1,7 @@
+[package]
+name = "day6"
+version = "0.1.0"
+authors = ["Ryan Forsythe <ryan@pdxcb.net>"]
+
+[dependencies]
+inputiterator = { path = "../inputiterator"}
