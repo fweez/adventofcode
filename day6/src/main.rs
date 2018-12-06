@@ -49,15 +49,18 @@ fn pointname(idx: usize) -> char {
 }
 
 const SHOWMAP: bool = false;
+const PARTBDIST: i16 = 10000;
 
 fn main() {
     let mut points: Vec<Point> = InputIterator::transform(|s| Point::parse(s)).collect();
+    let mut saferegionsize = 0;
     let max = FIELDSIZE as i16;
     for i in 0..FIELDSIZE {
         for j in 0..FIELDSIZE {
             let this = Point::new(i as i16, j as i16);
             let mut smallestdist = i16::max_value();
             let mut smallestidx = INFINITEIDX;
+            let mut distsum = 0;
             for (idx, point) in points.iter().enumerate() {
                 let dist = manhattan(point, &this);
                 if dist == smallestdist {
@@ -66,8 +69,11 @@ fn main() {
                     smallestdist = dist;
                     smallestidx = idx;
                 }
+                distsum += dist;
             }
-            
+            if distsum < PARTBDIST {
+                saferegionsize += 1;
+            }
             let infpoints = [Point::new(i as i16, 0), Point::new(i as i16, max), Point::new(0, j as i16), Point::new(max, j as i16)];
             for infpoint in infpoints.iter() {
                 let dist = manhattan(infpoint, &this);
@@ -86,4 +92,5 @@ fn main() {
     }
     points.sort_by_key(|p| p.regionarea);
     println!("\nlargest area: {}", points.last().expect("should have some points!").regionarea);
+    println!("safe region size: {}", saferegionsize);
 }
