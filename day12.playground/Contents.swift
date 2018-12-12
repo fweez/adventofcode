@@ -1,5 +1,4 @@
 import Foundation
-import PlaygroundSupport
 
 class PlantNode {
     var plant: PlantNode?
@@ -30,7 +29,7 @@ class PlantNode {
             for c in pattern {
                 curr = curr.add(c == "#")
             }
-            curr.add(result == "#")
+            let _ = curr.add(result == "#")
             curr.rule = String(input)
         }
     }
@@ -42,31 +41,40 @@ class Garden {
     var idxOffset = 0
     
     init(inputFile: String = "input") {
-        guard let filePath = Bundle.main.path(forResource: inputFile, ofType: "txt"),
-            let input = try? String(contentsOfFile: filePath) else {
-                print("Couldn't load file")
-                exit(1)
+        let input: String
+        if let filePath = Bundle.main.path(forResource: inputFile, ofType: "txt"),
+            let inp = try? String(contentsOfFile: filePath) {
+            input = inp
+        } else if let inp = try? String(contentsOfFile: inputFile) {
+            input = inp
+        } else {
+            print("Couldn't load file")
+            exit(1)
         }
-        
         var lines = input.split(separator: "\n")
         let initialStateDefinition = lines.removeFirst().split(separator: ":")[1].trimmingCharacters(in: .whitespaces)
         self.pots = initialStateDefinition.map({ $0 == "#" })
         self.padPots()
-        print(lines.joined(separator: "\n"))
         self.rules = PlantNode(definitions: lines)
     }
     
     func padPots() {
-        if !self.pots.prefix(3).allSatisfy({ !$0 }) {
-            self.pots.insert(false, at: 0)
-            self.pots.insert(false, at: 0)
-            self.pots.insert(false, at: 0)
-            self.idxOffset += 3
+        print("[p]\t\(self.description)")
+        let firstplantidx = self.pots.firstIndex(of: true)!
+        if firstplantidx < 5 {
+            for _ in 0..<5-firstplantidx {
+                self.pots.insert(false, at: 0)
+            }
+            self.idxOffset += 5-firstplantidx
         }
-        if !self.pots.suffix(3).allSatisfy({ !$0 }) {
-            self.pots.append(false)
-            self.pots.append(false)
-            self.pots.append(false)
+        if firstplantidx > 5 {
+            self.pots.replaceSubrange(0..<firstplantidx, with: [false, false, false, false, false])
+            self.idxOffset += 5-firstplantidx
+        }
+        //print("Idx offset now \(self.idxOffset)")
+        let lastplantidx = self.pots.lastIndex(of: true)!
+        if lastplantidx > self.pots.count - 6 {
+            self.pots.append(contentsOf: Array(repeating: false, count: 5))
         }
     }
     
@@ -104,15 +112,38 @@ class Garden {
     }
 }
 
-let testgarden = Garden(inputFile: "test")
+if CommandLine.arguments.count > 0 && CommandLine.arguments.last?.suffix(3) == "txt" {
+    let arg = CommandLine.arguments.last!
+    let garden = Garden(inputFile: arg)
+    var sum = 0
+    var generation = 0
+    for _ in 0..<20 {
+        garden.incrementGeneration()
+        generation += 1
+        sum = garden.sum
+        print("[\(generation)]\t\(garden.description)")
+    }
+    print("Sum of garden after 20 generations: \(garden.sum)")
 
-for generation in 0..<21 {
-    print("[\(generation)]\t\(testgarden.description)")
-    testgarden.incrementGeneration()
-}
+    
+    sum = 0
+    var diff = 0
+    while true {
+        diff = garden.sum - sum
+        sum = garden.sum
+        garden.incrementGeneration()
+        generation += 1
+        print("[\(generation)]\t\(garden.description)")
+        let remaining = 50000000000 - generation
+        print("Diff \(diff), projection for \(remaining) more generations is \(garden.sum + (remaining*diff))")
+    }
+    print("Sum of garden after \(generation) generations: \(garden.sum)")
+} else {
+    let testgarden = Garden(inputFile: "test")
+    
+    for generation in 0..<21 {
+        print("[\(generation)]\t\(testgarden.description)")
+        testgarden.incrementGeneration()
+    }
 
-let garden = Garden()
-for generation in 0..<21 {
-    print("[\(generation)]\t\(garden.description)")
-    garden.incrementGeneration()
 }
