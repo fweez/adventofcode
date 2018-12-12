@@ -36,7 +36,7 @@ class PlantNode {
 }
 
 class Garden {
-    var pots: Int64 = 0
+    var pots: [Bool] = []
     var rules: PlantNode!
     var idxOffset = 0
     
@@ -53,16 +53,13 @@ class Garden {
         }
         var lines = input.split(separator: "\n")
         let initialStateDefinition = lines.removeFirst().split(separator: ":")[1].trimmingCharacters(in: .whitespaces)
-        for (idx, c) in initialStateDefinition.enumerated() {
-            if c == "#" {
-                self.pots |= 1 << idx
-            }
-        }
+        self.pots = initialStateDefinition.map({ $0 == "#" })
         self.padPots()
         self.rules = PlantNode(definitions: lines)
     }
     
     func padPots() {
+        print("[p]\t\(self.description)")
         let firstplantidx = self.pots.firstIndex(of: true)!
         if firstplantidx < 5 {
             for _ in 0..<5-firstplantidx {
@@ -82,16 +79,18 @@ class Garden {
     }
     
     func incrementGeneration() {
-        var next: Int64 = 0
-        for idx in 0..<60 {
+        var next: [Bool] = Array(self.pots)
+        for idx in 0..<pots.count-4 {
             var curr = self.rules
-            for b in idx..<idx+5 {
-                curr = curr?.get(self.pots & 1<<b != 0)
+            for pot in self.pots[idx..<idx+5] {
+                curr = curr?.get(pot)
                 if curr == nil { break }
             }
-            if curr != nil {
+            if let result = curr {
                 //print("   \t" + Array(repeating: " ", count: idx).joined() + result.rule!)
-                next |= 1 << idx+2
+                next[idx+2] = result.empty == nil
+            } else {
+                next[idx+2] = false
             }
         }
         self.pots = next
@@ -100,8 +99,8 @@ class Garden {
     
     var sum: Int {
         var sum = 0
-        for idx in 0..<64 {
-            if self.pots & Int64(1)<<idx != 0 {
+        for idx in 0..<self.pots.count {
+            if self.pots[idx] {
                 sum += idx - self.idxOffset
             }
         }
@@ -109,15 +108,7 @@ class Garden {
     }
     
     var description: String {
-        var s = ""
-        for idx in 0..<64 {
-            if self.pots & Int64(1)<<idx != 0 {
-                s.append("#")
-            } else {
-                s.append(".")
-            }
-        }
-        return "\(s)\tsum:\(self.sum)"
+        return self.pots.map({ $0 ? "#" : "."}).joined() + "\tsum:\(self.sum)"
     }
 }
 
@@ -137,7 +128,7 @@ if CommandLine.arguments.count > 0 && CommandLine.arguments.last?.suffix(3) == "
     
     sum = 0
     var diff = 0
-    while true {
+    while generation < 350 {
         diff = garden.sum - sum
         sum = garden.sum
         garden.incrementGeneration()
@@ -145,8 +136,8 @@ if CommandLine.arguments.count > 0 && CommandLine.arguments.last?.suffix(3) == "
         print("[\(generation)]\t\(garden.description)")
         let remaining = 50000000000 - generation
         print("Diff \(diff), projection for \(remaining) more generations is \(garden.sum + (remaining*diff))")
+        print("\(garden.pots.reduce(0, { $1 ? $0 + 1 : $0})) plants")
     }
-    print("Sum of garden after \(generation) generations: \(garden.sum)")
 } else {
     let testgarden = Garden(inputFile: "test")
     
@@ -154,4 +145,5 @@ if CommandLine.arguments.count > 0 && CommandLine.arguments.last?.suffix(3) == "
         print("[\(generation)]\t\(testgarden.description)")
         testgarden.incrementGeneration()
     }
+
 }
