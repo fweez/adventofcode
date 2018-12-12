@@ -29,7 +29,7 @@ class PlantNode {
             for c in pattern {
                 curr = curr.add(c == "#")
             }
-            _ = curr.add(result == "#")
+            let _ = curr.add(result == "#")
             curr.rule = String(input)
         }
     }
@@ -51,7 +51,6 @@ class Garden {
             print("Couldn't load file")
             exit(1)
         }
-        
         var lines = input.split(separator: "\n")
         let initialStateDefinition = lines.removeFirst().split(separator: ":")[1].trimmingCharacters(in: .whitespaces)
         for (idx, c) in initialStateDefinition.enumerated() {
@@ -64,23 +63,21 @@ class Garden {
     }
     
     func padPots() {
-        while self.pots & 7 != 0 {
-            if self.pots & (7 << 62) != 0 {
-                print(self.description)
-                assert(false, "Must not shift up if top bits are taken")
+        let firstplantidx = self.pots.firstIndex(of: true)!
+        if firstplantidx < 5 {
+            for _ in 0..<5-firstplantidx {
+                self.pots.insert(false, at: 0)
             }
-            
-            self.pots = self.pots << 1
-            self.idxOffset += 1
+            self.idxOffset += 5-firstplantidx
         }
-        while self.pots & (7 << 62) != 0 {
-            if self.pots & 7 != 0 {
-                print(self.description)
-                assert(false, "Must not shift down if bottom bits are taken")
-            }
-                
-            self.pots = self.pots >> 1
-            self.idxOffset -= 1
+        if firstplantidx > 5 {
+            self.pots.replaceSubrange(0..<firstplantidx, with: [false, false, false, false, false])
+            self.idxOffset += 5-firstplantidx
+        }
+        //print("Idx offset now \(self.idxOffset)")
+        let lastplantidx = self.pots.lastIndex(of: true)!
+        if lastplantidx > self.pots.count - 6 {
+            self.pots.append(contentsOf: Array(repeating: false, count: 5))
         }
     }
     
@@ -127,30 +124,34 @@ class Garden {
 if CommandLine.arguments.count > 0 && CommandLine.arguments.last?.suffix(3) == "txt" {
     let arg = CommandLine.arguments.last!
     let garden = Garden(inputFile: arg)
+    var sum = 0
+    var generation = 0
     for _ in 0..<20 {
         garden.incrementGeneration()
+        generation += 1
+        sum = garden.sum
+        print("[\(generation)]\t\(garden.description)")
     }
     print("Sum of garden after 20 generations: \(garden.sum)")
+
     
-    for i in 20..<50000000000 {
-        if i % 100000 == 0 { print(".") }
+    sum = 0
+    var diff = 0
+    while true {
+        diff = garden.sum - sum
+        sum = garden.sum
         garden.incrementGeneration()
+        generation += 1
+        print("[\(generation)]\t\(garden.description)")
+        let remaining = 50000000000 - generation
+        print("Diff \(diff), projection for \(remaining) more generations is \(garden.sum + (remaining*diff))")
     }
-    print("Sum of garden after lololol generations: \(garden.sum)")
+    print("Sum of garden after \(generation) generations: \(garden.sum)")
 } else {
     let testgarden = Garden(inputFile: "test")
-
-    for _ in 0..<20 {
+    
+    for generation in 0..<21 {
+        print("[\(generation)]\t\(testgarden.description)")
         testgarden.incrementGeneration()
-        print(testgarden.description)
     }
-
-    print("Sum of test garden: \(testgarden.sum)")
-
-    let garden = Garden()
-    for _ in 0..<20 {
-        garden.incrementGeneration()
-        print(testgarden.description)
-    }
-    print("Sum of garden after 20 generations: \(garden.sum)")
 }
