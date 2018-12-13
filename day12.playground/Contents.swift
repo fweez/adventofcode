@@ -25,6 +25,7 @@ class PlantNode {
             let inputs = input.split(separator: " ")
             let pattern = inputs[0]
             let result = inputs[2].trimmingCharacters(in: .whitespaces)
+            if result == "." { continue }
             var curr = self
             for c in pattern {
                 curr = curr.add(c == "#")
