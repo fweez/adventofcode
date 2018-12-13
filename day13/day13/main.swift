@@ -152,12 +152,12 @@ class Cart: MapElement {
         }
     }
     
-    func crashed(carts: [Cart]) -> Bool {
+    func crashed(carts: [Cart]) -> Cart? {
         for cart in carts {
             if cart.identifier == self.identifier { continue }
-            if cart.location == self.location { return true }
+            if cart.location == self.location { return cart }
         }
-        return false
+        return nil
     }
 }
 
@@ -230,16 +230,28 @@ class Track {
     }
     
     func tick() -> Point? {
-        for cart in carts {
+        for cart in self.carts {
             cart.move(map: self.map)
             print(cart)
-            if cart.crashed(carts: carts) {
+            if let _ = cart.crashed(carts: self.carts) {
                 return cart.location
             }
         }
         print("Tick without crash")
         carts.sort(by: self.cartSorter)
         return nil
+    }
+    
+    func tickWithRemoval() {
+        for cart in self.carts {
+            cart.move(map: self.map)
+            print(cart)
+            if let collidingCart = cart.crashed(carts: self.carts) {
+                print("Removing \(cart.identifier) and \(collidingCart.identifier)")
+                self.carts.removeAll { $0.identifier == cart.identifier || $0.identifier == collidingCart.identifier }
+            }
+        }
+        carts.sort(by: self.cartSorter)
     }
 }
 
@@ -257,10 +269,19 @@ if CommandLine.arguments.count > 0 && CommandLine.arguments.last?.suffix(3) == "
     }
     while true {
         if let crashPoint = track.tick() {
-            print("Crashed at \(crashPoint)")
+            print("Part A: crashed at \(crashPoint)")
             break
         }
     }
+    guard let trackB = Track(inputFile: arg) else {
+        print("Couldn't build track!")
+        exit(1)
+    }
+    while trackB.carts.count > 1 {
+        trackB.tickWithRemoval()
+    }
+    print("Last cart: \(trackB.carts.first!)")
+    
 } else {
     print("Running tests")
     let track = Track()
@@ -301,12 +322,27 @@ if CommandLine.arguments.count > 0 && CommandLine.arguments.last?.suffix(3) == "
     assert(track.carts.count == 2, "should have 1 carts in map")
     var crashed = false
     for _ in 0..<20 {
-        if let crashPoint = track.tick() {
+        if let _ = track.tick() {
             crashed = true
             break
         }
     }
     assert(crashed, "carts should have crashed!")
+    
+    track.load("""
+    />-<\\
+    |   |
+    | /<+-\\
+    | | | v
+    \\>+</ |
+      |   ^
+      \\<->/
+    """)
+    while track.carts.count > 1 {
+        print("\(track.carts.count) carts remain")
+        track.tickWithRemoval()
+    }
+    assert(track.carts.first?.location == Point(6,4))
 }
 
 // UNUSED, currently
