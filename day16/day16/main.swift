@@ -9,30 +9,30 @@
 import Foundation
 
 struct Instruction {
-    let opcode: Int
+    let numericOpcode: Int
     let a: Int
     let b: Int
     let c: Int
     
     init(_ opcode: Int = ILLEGAL_REGISTER_VALUE, _ a: Int = ILLEGAL_REGISTER_VALUE, _ b: Int = ILLEGAL_REGISTER_VALUE, _ c: Int = ILLEGAL_REGISTER_VALUE) {
-        self.opcode = opcode
+        self.numericOpcode = opcode
         self.a = a
         self.b = b
         self.c = c
     }
     
     var valid: Bool {
-        return self.opcode != ILLEGAL_REGISTER_VALUE && self.a != ILLEGAL_REGISTER_VALUE && self.b != ILLEGAL_REGISTER_VALUE && self.c != ILLEGAL_REGISTER_VALUE
+        return self.numericOpcode != ILLEGAL_REGISTER_VALUE && self.a != ILLEGAL_REGISTER_VALUE && self.b != ILLEGAL_REGISTER_VALUE && self.c != ILLEGAL_REGISTER_VALUE
     }
 }
 
 extension Instruction: CustomStringConvertible {
-    var description: String { return "\(self.opcode) \(self.a) \(self.b) \(self.c)" }
+    var description: String { return "\(self.numericOpcode) \(self.a) \(self.b) \(self.c)" }
 }
 
 extension Instruction: Hashable {
     func hash(into hasher: inout Hasher) {
-        hasher.combine(self.opcode)
+        hasher.combine(self.numericOpcode)
         hasher.combine(self.a)
         hasher.combine(self.b)
         hasher.combine(self.c)
@@ -104,16 +104,16 @@ enum ParseError: Error {
 let ILLEGAL_REGISTER_VALUE = -1
 
 class Compy {
-    // Map (instructions, before register array) to lists of opcodes they match
-    //var opcodeMatches: [(Instruction, [Int]): [Opcode]] = [:]
+    // Map numeric representations to possible opcodes
+    var opcodeMatches: [Int: Set<Opcode>] = [:]
 
     convenience init?(inputFile: String) throws {
         self.init()
         if let filePath = Bundle.main.path(forResource: inputFile, ofType: "txt"),
             let input = try? String(contentsOfFile: filePath) {
-            try self.load(input)
+            _ = try self.load(input)
         } else if let input = try? String(contentsOfFile: inputFile) {
-            try self.load(input)
+            _ = try self.load(input)
         } else {
             print("Couldn't load file")
             return nil
@@ -123,7 +123,8 @@ class Compy {
     func load(_ input: String) throws -> Int {
         var before = Array(repeating: ILLEGAL_REGISTER_VALUE, count: 4)
         var instruction = Instruction()
-        //self.opcodeMatches = [:]
+        
+        self.opcodeMatches = [:]
         
         /*
          Before: [0, 0, 3, 0]
@@ -137,44 +138,96 @@ class Compy {
         }
         
         enum LineType {
-            case BeforeLine, InstructionLine, AfterLine//, NewLine
+            case BeforeLine, InstructionLine, AfterLine, ProgramLine
         }
         var currentLine = LineType.BeforeLine
         var blockCount = 0
         var manyMatchCount = 0
+        var programLineCount = 0
+        
         for line in input.split(separator: "\n") {
             switch currentLine {
-            case .BeforeLine:
-                if line.prefix(9) != "Before: [" { break }
-                print("Before line: \(line)")
-                let registerBlock = line[line.index(line.startIndex, offsetBy: 9)..<line.index(line.endIndex, offsetBy: -1)]
-                before = convertToInts(registerBlock)
-                currentLine = .InstructionLine
             case .InstructionLine:
-                print("Instruction line: \(line)")
                 let instructionComponents = line.split(separator: " ").map { Int($0) ?? ILLEGAL_REGISTER_VALUE }
                 instruction = Instruction(instructionComponents[0], instructionComponents[1], instructionComponents[2], instructionComponents[3])
                 currentLine = .AfterLine
             case .AfterLine:
-                print("After line: \(line)")
                 let registerBlock = line[line.index(line.startIndex, offsetBy: 9)..<line.index(line.endIndex, offsetBy: -1)]
                 let after = convertToInts(registerBlock)
-                assert(instruction.valid)
-                let matchingOpcodes = self.findMatchingOpcodes(registers: before, instruction: instruction, result: after)
-                if matchingOpcodes.count >= 3 {
+                
+                let matchingOpcodeCount = self.performTestInstruction(before: before, instruction: instruction, result: after)
+                if matchingOpcodeCount >= 3 {
                     manyMatchCount += 1
                 }
+                
                 instruction = Instruction()
                 before = Array(repeating: ILLEGAL_REGISTER_VALUE, count: 4)
                 currentLine = .BeforeLine
                 blockCount += 1
+            case .BeforeLine:
+                if line.prefix(9) != "Before: [" {
+                    before = Array(repeating: 0, count: 4)
+                    currentLine = .ProgramLine
+                    print(self.opcodeMatches)
+                    fallthrough
+                } else {
+                    let registerBlock = line[line.index(line.startIndex, offsetBy: 9)..<line.index(line.endIndex, offsetBy: -1)]
+                    before = convertToInts(registerBlock)
+                    currentLine = .InstructionLine
+                }
+            case .ProgramLine:
+                print("program line: \(line)")
+                programLineCount += 1
+                let instructionComponents = line.split(separator: " ").map { Int($0) ?? ILLEGAL_REGISTER_VALUE }
+                instruction = Instruction(instructionComponents[0], instructionComponents[1], instructionComponents[2], instructionComponents[3])
+                before = self.runProgramLine(before: before, instruction: instruction)
             }
         }
         
         print("Processed \(blockCount) items")
         //let count = opcodeMatches.values.map({ $0.count }).filter({ $0 >= 3 }).count
         print("Part A: \(manyMatchCount) (of \(blockCount)) have >= 3 matches")
+        print("Part B: \(programLineCount) instructions yield registers: \(before)")
         return manyMatchCount
+    }
+    
+    func performTestInstruction(before: [Int], instruction: Instruction, result: [Int]) -> Int {
+        assert(instruction.valid)
+        let matchingOpcodes = self.findMatchingOpcodes(registers: before, instruction: instruction, result: result)
+        let count = matchingOpcodes.count
+        
+        print("Found \(count) matching opcodes: \(matchingOpcodes)")
+        
+        let candidates = self.opcodeMatches[instruction.numericOpcode] ?? Set(Opcode.allCases)
+        print("Candidates for \(instruction.numericOpcode) were \(candidates) (\(candidates.count))")
+        self.opcodeMatches[instruction.numericOpcode] = candidates.intersection(matchingOpcodes)
+        print("Candidates for \(instruction.numericOpcode) now \(self.opcodeMatches[instruction.numericOpcode]!) (\(candidates.count))")
+        
+        self.reduceCandidates()
+        return count
+    }
+    
+    func reduceCandidates() {
+        var removed = false
+        for (knownOpcode, candidates) in self.opcodeMatches {
+            if candidates.count == 1 {
+                for numericOpcode in self.opcodeMatches.keys {
+                    if numericOpcode == knownOpcode { continue }
+                    if self.opcodeMatches[numericOpcode]?.remove(candidates.first!) != nil {
+                        removed = true
+                    }
+                }
+            }
+        }
+        if removed { self.reduceCandidates() }
+    }
+    
+    func opcode(for numericOpcode: Int) -> Opcode {
+        return self.opcodeMatches[numericOpcode]!.first!
+    }
+    
+    func runProgramLine(before: [Int], instruction: Instruction) -> [Int] {
+        return self.opcode(for: instruction.numericOpcode).run(before: before, instruction: instruction)
     }
     
     func findMatchingOpcodes(registers: [Int], instruction: Instruction, result: [Int]) -> [Opcode] {
