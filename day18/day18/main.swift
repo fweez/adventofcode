@@ -194,12 +194,54 @@ do {
     try IngestManager().loadCommandLineFile(into: area)
     print("Initial state")
     print(area)
-    for i in 0..<10 {
-        print("minute \(i+1)")
+    for _ in 0..<10 {
         area.tick()
-        print(area)
     }
-    print("Value: \(area.value)")
+    print("Value after 10 units: \(area.value)")
+    // map frame to area's map
+    var cache: [Int: String] = [:]
+    var scores: [Int: Int] = [:]
+    let limit = 500
+    for i in 10..<limit {
+        area.tick()
+        //print(area)
+        cache[i] = area.description
+        scores[i] = area.value
+    }
+    var initialDuplicate = 0
+    var dupeLen = 0
+    for i in 10..<limit {
+        for j in i..<limit {
+            if i == j { continue }
+            if cache[i] == cache[j] {
+                if initialDuplicate == 0 {
+                    initialDuplicate = i
+                }
+                if dupeLen == 0 {
+                    dupeLen = j - i
+                }
+                
+                print("frames \(i) and \(j) are identical")
+                break
+            }
+        }
+        if initialDuplicate != 0 { break }
+    }
+    
+    let remainder = (1000000000 - initialDuplicate) % dupeLen
+    print("Remainder: \(remainder)")
+    let endScoreIdx = initialDuplicate + remainder
+    let score = scores[endScoreIdx]!
+    for i in 0..<dupeLen {
+        let a = initialDuplicate + i
+        let b = initialDuplicate + dupeLen + i
+        assert(scores[a] == scores[b], "Scores at indexes \(a) and \(b) should be identical!\n\n\(cache[a])\n\n\(cache[b])")
+    }
+    
+    // submitted scores:
+    assert(score < 594712, "Score \(score) is too high")
+    assert(score > 198269, "Score \(score) is too low")
+    print("Value after 1000000000 units: \(scores[endScoreIdx]!)")
 } catch IngestError.NoFile {
     try area.load("""
     .#.#...|#.
