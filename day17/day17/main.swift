@@ -76,43 +76,18 @@ extension Point: Hashable {
     }
 }
 
-enum FlowDirection {
-    case Right, Down, Left, Split
-}
-
-extension FlowDirection: CustomStringConvertible {
-    var description: String {
-        switch self {
-        case .Right: return ">"
-        case .Down: return "v"
-        case .Left: return "<"
-        case .Split: return "+"
-        }
-    }
-}
-
 enum MapElement {
     case Sand
     case Clay
-    case FlowDown
-    case FlowLeft
-    case FlowRight
-    case FlowSplit
-    case FlowStopped
     case Water
 }
     
 extension MapElement: CustomStringConvertible {
     var description: String {
         switch self {
-        case .Sand: return "."
+        case .Sand: return " "
         case .Clay: return "#"
         case .Water: return "~"
-        case .FlowDown: return "v"
-        case .FlowLeft: return "<"
-        case .FlowRight: return ">"
-        case .FlowSplit: return "+"
-        case .FlowStopped: return "x"
         }
     }
 }
@@ -123,139 +98,103 @@ class GroundScan {
     var walls: [Vein] = []
     var floors: [Vein] = []
     var map: [[MapElement]] = []
-    var flow: [Point] = []
     
     // (re)set during load
     var scanRangeX = (Int.max, 0)
     var scanRangeY = (Int.max, 0)
     
-    func tick() {
-        if flow.count == 0 { return }
-        let point = flow.removeLast()
-        if point.y == self.scanRangeY.1 - 1 { return }
-        switch self.map[point.y][point.x] {
-        case .FlowDown: self.flow.append(contentsOf: self.flowDown(point))
-        case .FlowRight: self.flow.append(contentsOf: self.flowRight(point))
-        case .FlowLeft: self.flow.append(contentsOf: self.flowLeft(point))
-        case .FlowSplit: self.flow.append(contentsOf: self.flowSplit(point))
-        default: break
+    var open: [Point] = []
+    var visited: Set<Point> = Set()
+    
+    func tick() -> Bool {
+        if open.count == 0 { return false }
+        let curr = open.removeFirst()
+        assert(self.map[curr.y][curr.x] != .Clay)
+        if self.visited.contains(curr) {
+            // Don't revisit points
+            return true
         }
-    }
-    
-    func flowDown(_ point: Point) -> [Point] {
-        let next = Point(point.x, point.y+1)
-        switch self.map[next.y][next.x] {
-        case .Clay, .Water, .FlowStopped:
-            self.map[point.y][point.x] = .FlowSplit
-            return [point]
-        case .Sand:
-            self.map[next.y][next.x] = .FlowDown
-            return [point, next]
-        case .FlowDown, .FlowLeft, .FlowRight, .FlowSplit:
-            return []
-        }
-    }
-    
-    func flowRight(_ point: Point) -> [Point] {
-        return self.flowHorizontally(curr: point, next: Point(point.x + 1, point.y), replacement: .FlowRight)
-    }
-    
-    func flowLeft(_ point: Point) -> [Point] {
-        return self.flowHorizontally(curr: point, next: Point(point.x - 1, point.y), replacement: .FlowLeft)
-    }
-    
-    func flowHorizontally(curr: Point, next: Point, replacement: MapElement) -> [Point] {
+        self.visited.insert(curr)
+        
         let below = Point(curr.x, curr.y + 1)
-        switch self.map[below.y][below.x] {
-        case .Sand:
-            self.map[curr.y][curr.x] = .FlowDown
-            return [curr]
-        case .FlowRight, .FlowLeft, .FlowDown, .FlowSplit, .FlowStopped:
-            return []
-        default: break
+        if below.y >= scanRangeY.1 {
+            // Off the end of the map, we're done
+            return true
         }
         
-        if next.y < 0 || next.y > self.map.count || next.x < 0 || next.x > self.map.first!.count {
-            print(self)
-            print("Flowed too far horizontally! Next is \(next). Below is a '\(self.map[below.y][below.x])', == sand \(self.map[below.y][below.x] == .Sand)")
-            assertionFailure()
+        if self.map[below.y][below.x] == .Sand {
+            self.open.append(below)
+            return true
         }
         
-        switch self.map[next.y][next.x] {
-        case .Clay:
-            self.map[curr.y][curr.x] = .FlowStopped
-        case .Water:
-            self.map[curr.y][curr.x] = .Water
-        case .Sand:
-            self.map[next.y][next.x] = replacement
-            return [curr, next]
-        case .FlowStopped:
-            self.map[curr.y][curr.x] = .FlowStopped
-        case .FlowDown, .FlowLeft, .FlowRight, .FlowSplit: break
+        // Below is clay or water. Search right and left for walls.
+        var waterTransformPoints: Set<Point> = Set()
+        var rightWall = false
+        for x in curr.x..<self.map[curr.y].count {
+            let rightward = Point(x, curr.y)
+            if self.map[rightward.y][rightward.x] == .Clay {
+                rightWall = true
+                break
+            }
+            let belowRightward = Point(rightward.x, rightward.y + 1)
+            if self.map[belowRightward.y][belowRightward.x] == .Sand {
+                self.open.append(rightward)
+                break
+            } else {
+                self.visited.insert(rightward)
+            }
+            waterTransformPoints.insert(rightward)
         }
-        return []
+        
+        var leftWall = false
+        var leftward = Point(curr.x, curr.y)
+        while true {
+            leftward = Point(leftward.x-1, leftward.y)
+            if self.map[leftward.y][leftward.x] == .Clay {
+                leftWall = true
+                break
+            }
+            let belowLeftward = Point(leftward.x, leftward.y + 1)
+            if self.map[belowLeftward.y][belowLeftward.x] == .Sand {
+                self.open.append(leftward)
+                break
+            } else {
+                self.visited.insert(leftward)
+            }
+            waterTransformPoints.insert(leftward)
+        }
+        
+        if rightWall && leftWall {
+            waterTransformPoints.insert(curr)
+            for p in waterTransformPoints {
+                if self.open.contains(p) {
+                    let above = Point(p.x, p.y-1)
+                    self.open.append(above)
+                    self.visited.remove(above)
+                }
+                assert(self.map[p.y][p.x] == .Sand)
+                self.map[p.y][p.x] = .Water
+            }
+            // curr isn't in open any more, so add it manually:
+            let above = Point(curr.x, curr.y-1)
+            self.open.append(above)
+            self.visited.remove(above)
+        }
+        
+        return true
     }
     
-    func flowSplit(_ point: Point) -> [Point] {
-        var out: [Point] = []
-        let left = Point(point.x - 1, point.y)
-        let right = Point(point.x + 1, point.y)
-        
-        if self.map[left.y][left.x] == .Clay && self.map[right.y][right.x] == .Clay {
-            self.map[point.y][point.x] = .Water
-            return []
-        }
-        
-        var leftStopped = false
-        switch self.map[left.y][left.x] {
-        case .Sand:
-            self.map[left.y][left.x] = .FlowLeft
-            out.append(left)
-        case .Water:
-            self.map[point.y][point.x] = .Water
-        case .Clay, .FlowStopped:
-            leftStopped = true
-        default: break
-        }
-        
-        var rightStopped = false
-        switch self.map[right.y][right.x] {
-        case .Sand:
-            self.map[right.y][right.x] = .FlowRight
-            out.append(right)
-        case .Water:
-            self.map[point.y][point.x] = .Water
-        case .Clay, .FlowStopped:
-            rightStopped = true
-        default: break
-        }
-        
-        if leftStopped && rightStopped {
-            self.map[point.y][point.x] = .Water
-            out.append(left)
-            out.append(right)
-        }
-        
-        if out.count > 0 {
-            out.insert(point, at: 0)
-        }
-        
-        return out
-    }
-    
-    var waterCounts: (Int, Int) {
-        var water = 0
-        var flow = 0
-        for row in self.map[self.scanRangeY.0..<self.scanRangeY.1] {
-            for element in row {
-                switch element {
-                case .Clay, .Sand: break
-                case .Water: water += 1
-                case .FlowLeft, .FlowRight, .FlowDown, .FlowSplit, .FlowStopped: flow += 1
+    var waterCount: Int {
+        var count = 0
+        for y in 1..<self.scanRangeY.1 {
+            for x in 0..<(self.scanRangeX.1-self.scanRangeX.0) {
+                let curr = Point(x, y)
+                if self.visited.contains(curr) || self.map[curr.y][curr.x] == .Water {
+                    count += 1
                 }
             }
         }
-        return (water, flow)
+        return count
     }
 }
 
@@ -276,6 +215,8 @@ extension GroundScan: Ingester {
     func load(_ input: String) throws {
         self.floors = []
         self.walls = []
+        self.open = []
+        self.visited = Set()
         
         for line in input.split(separator: "\n") {
             let vein = try Vein(specification: line)
@@ -315,24 +256,36 @@ extension GroundScan: Ingester {
         }
         
         let flowPoint = Point(500 - self.scanRangeX.0, 0)
-        self.map[flowPoint.y][flowPoint.x] = .FlowDown
-        self.flow = [flowPoint]
+        self.open = [flowPoint]
     }
 }
 
 extension GroundScan: CustomStringConvertible {
     var description: String {
-        var textMap = self.map.map({ $0.map( { $0.description }) })
+        var textMap = ""
         
-        if self.flow.count > 0 {
-            for p in self.flow {
-                textMap[p.y][p.x] = "f"
+        for y in 0..<self.scanRangeY.1 {
+            for x in 0..<(self.scanRangeX.1 - self.scanRangeX.0) {
+                let curr = Point(x, y)
+                let kind = self.map[curr.y][curr.x]
+                switch kind {
+                case .Sand:
+                    if self.visited.contains(curr) {
+                        textMap.append("|")
+                    } else if self.open.first == curr {
+                        textMap.append("F")
+                    } else if self.open.contains(curr) {
+                        textMap.append("o")
+                    } else {
+                        fallthrough
+                    }
+                case .Clay, .Water: textMap.append(kind.description)
+                }
             }
-            let lastFlow = self.flow.last!
-            textMap[lastFlow.y][lastFlow.x] = "F"
+            textMap.append("\n")
         }
         
-        return textMap.map({ $0.joined() }).joined(separator: "\n")
+        return textMap
     }
 }
 
@@ -373,15 +326,37 @@ do {
     try IngestManager().loadCommandLineFile(into: scanner)
     print("Loaded. Scan had \(scanner.floors.count) floors and \(scanner.walls.count) walls")
     print("Starting flow")
-    while scanner.flow.count > 0 {
-        scanner.tick()
+    while scanner.tick() {
+        // do nothing
     }
-    let waterCounts = scanner.waterCounts
-    print("\(waterCounts.0) stream cells, \(waterCounts.1) pool cells = \(waterCounts.0 + waterCounts.1) water cells")
+    print("\(scanner.waterCount) water cells")
     print(scanner)
+    
+    let count = scanner.description.reduce(0, { (accum, c) -> Int in
+        if c == "|" || c == "~" { return accum + 1 }
+        else { return accum }
+    })
+    print("Double check: \(count) water cells")
+    
 } catch IngestError.NoFile {
     print("Running tests")
-    try? scanner.load("""
+    
+    func runMap(input: String, expectedWater: Int = -1) {
+        do { try scanner.load(input) }
+        catch { assertionFailure() }
+        
+        print("Initial open: \(scanner.open.count)")
+        print("Next: \(scanner.open.first?.description ?? "n/a")")
+        print(scanner)
+        while scanner.tick() {
+            print("Open: \(scanner.open.count)")
+            print("Next: \(scanner.open.first?.description ?? "n/a")")
+            print(scanner)
+        }
+        if expectedWater > 0 { assert(scanner.waterCount == expectedWater) }
+    }
+    
+    runMap(input: """
     x=495, y=2..7
     y=7, x=495..501
     x=501, y=3..7
@@ -390,48 +365,29 @@ do {
     x=498, y=10..13
     x=504, y=10..13
     y=13, x=498..504
-    """)
-    print("Loaded. Scan had \(scanner.floors.count) floors and \(scanner.walls.count) walls")
-    print(scanner)
-    
-    while scanner.flow.count > 0 {
-        print("Flow remaining: \(scanner.flow.count)")
-        scanner.tick()
-        print(scanner)
-    }
-    let lastWaterCount = scanner.waterCounts
-    assert(lastWaterCount.0 + lastWaterCount.1 == 57)
-    
-    try? scanner.load("""
+    """, expectedWater: 57)
+    runMap(input: """
     x=495, y=2..7
     y=7, x=495..505
     x=505, y=2..7
     y=2, x=495..505
     """)
-    print(scanner)
-    while scanner.flow.count > 0 {
-        print("Flow remaining: \(scanner.flow.count)")
-        scanner.tick()
-        print(scanner)
-    }
+    runMap(input: """
+    x=498, y=2..6
+    y=6, x=498..502
+    x=502, y=2..6
+    x=494, y=4..10
+    y=10, x=494..506
+    x=506, y=4..10
     
-    do {
-        try scanner.load("""
-        x=498, y=2..6
-        y=6, x=498..502
-        x=502, y=2..6
-        x=494, y=4..10
-        y=10, x=494..506
-        x=506, y=4..10
-        
-        """)
-    } catch {
-        assertionFailure()
-    }
-    print(scanner)
-    while scanner.flow.count > 0 {
-        print("Flow remaining: \(scanner.flow.count)")
-        scanner.tick()
-        print(scanner)
-    }
+    """)
+    runMap(input: """
+    x=495, y=2..8
+    y=8, x=495..505
+    x=505, y=2..8
+    x=498, y=4..6
+    y=6, x=498..502
+    x=502, y=4..6
+    y=4, x=498..502
+    """)
 }
