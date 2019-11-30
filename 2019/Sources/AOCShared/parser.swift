@@ -45,11 +45,20 @@ public func zip<A, B, Seq>(_ a: Parser<A, Seq>, _ b: Parser<B, Seq>) -> Parser<(
     }
 }
 
-public func zip<A, B, C, Seq>(_ a: Parser<A, Seq>, _ b: Parser<B, Seq>, _ c: Parser<C, Seq>) -> Parser<(A, B, C), Seq> {
+public func zip<A, B, C, Seq>(
+    _ a: Parser<A, Seq>,
+    _ b: Parser<B, Seq>,
+    _ c: Parser<C, Seq>)
+    -> Parser<(A, B, C), Seq> {
     zip(a, zip(b, c)).map { a, bc in (a, bc.0, bc.1) }
 }
 
-public func zip<A, B, C, D, Seq>(_ a: Parser<A, Seq>, _ b: Parser<B, Seq>, _ c: Parser<C, Seq>, _ d: Parser<D, Seq>) -> Parser<(A, B, C, D), Seq> {
+public func zip<A, B, C, D, Seq>(
+    _ a: Parser<A, Seq>,
+    _ b: Parser<B, Seq>,
+    _ c: Parser<C, Seq>,
+    _ d: Parser<D, Seq>)
+    -> Parser<(A, B, C, D), Seq> {
     zip(a, zip(b, c, d)).map { a, bcd in (a, bcd.0, bcd.1, bcd.2) }
 }
 
@@ -72,11 +81,61 @@ public func zip<A, B, C, D, E, F, Seq>(
     zip(a, zip(b, c, d, e, f)).map { a, bcdef in (a, bcdef.0, bcdef.1, bcdef.2, bcdef.3, bcdef.4) }
 }
 
-public func always<A, Seq>(_ a: A) -> Parser<A, Seq> {
-    return Parser<A, Seq> { _ in a }
+public func zip<A, B, C, Seq>(
+    _ a: Parser<A, Seq>,
+    _ b: Parser<B, Seq>,
+    with f: @escaping (A, B) -> C)
+    -> Parser<C, Seq> {
+    zip(a, b).map(f)
+}
+
+public func zip<A, B, C, D, Seq>(
+    _ a: Parser<A, Seq>,
+    _ b: Parser<B, Seq>,
+    _ c: Parser<C, Seq>,
+    with f: @escaping (A, B, C) -> D)
+    -> Parser<D, Seq> {
+    zip(a, b, c).map(f)
+}
+
+public func zip<A, B, C, D, E, Seq>(
+    _ a: Parser<A, Seq>,
+    _ b: Parser<B, Seq>,
+    _ c: Parser<C, Seq>,
+    _ d: Parser<D, Seq>,
+    with f: @escaping (A, B, C, D) -> E)
+    -> Parser<E, Seq> {
+    zip(a, b, c, d).map(f)
+}
+
+public func zip<A, B, C, D, E, F, Seq>(
+    _ a: Parser<A, Seq>,
+    _ b: Parser<B, Seq>,
+    _ c: Parser<C, Seq>,
+    _ d: Parser<D, Seq>,
+    _ e: Parser<E, Seq>,
+    with f: @escaping (A, B, C, D, E) -> F)
+    -> Parser<F, Seq> {
+    zip(a, b, c, d, e).map(f)
+}
+
+public func zip<A, B, C, D, E, F, G, Seq>(
+    _ a: Parser<A, Seq>,
+    _ b: Parser<B, Seq>,
+    _ c: Parser<C, Seq>,
+    _ d: Parser<D, Seq>,
+    _ e: Parser<E, Seq>,
+    _ f: Parser<F, Seq>,
+    with g: @escaping (A, B, C, D, E, F) -> G)
+    -> Parser<G, Seq> {
+    zip(a, b, c, d, e, f).map(g)
 }
 
 extension Parser {
+    static func always(_ a: A) -> Self {
+        return .init() { _ in a }
+    }
+    
     static var never: Parser {
         return Parser { _ in nil }
     }
@@ -127,7 +186,7 @@ public func hasPrefix<A>(while p: @escaping (A.Element) -> Bool) -> Parser<A.Sub
     optionalPrefix(while: p)
         .flatMap { str in
             guard str.count > 0 else { return .never }
-            return always(str)
+            return .always(str)
     }
 }
 
@@ -159,11 +218,11 @@ public func literal<A>(_ literal: A.Element) -> Parser<Void, A> where A: Collect
 }
 
 public func literal<A, B>(_ literalSequence: A, _ produces: B) -> Parser<B, A> where A: Collection, A.Element: Equatable {
-    literal(literalSequence).flatMap { _ in always(produces) }
+    literal(literalSequence).flatMap { _ in .always(produces) }
 }
 
 public func literal<A, B>(_ l: A.Element, _ produces: B) -> Parser<B, A> where A: Collection, A.Element: Equatable {
-    literal(l).flatMap { _ in always(produces) }
+    literal(l).flatMap { _ in .always(produces) }
 }
 
 public func literal<A>(predicate: @escaping (A.Element) -> Bool) -> Parser<Void, A> {

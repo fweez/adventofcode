@@ -9,6 +9,7 @@ let package = Package(
         .library(
             name: "AOCShared",
             targets: ["AOCShared"]),
+        
         /// To start a day, copy and paste this target, updating the name to "dayX"
         .library(
             name: "day0",
@@ -22,10 +23,11 @@ let package = Package(
         .target(
             name: "AOCShared",
             dependencies: []),
+        
         /// To start a day, copy and paste this target, updating the name to "dayX"
         .target(
             name: "day0",
-            dependencies: []),
+            dependencies: ["AOCShared", "Overture", "Prelude"]),
         
         .target(
             name: "AOC",
