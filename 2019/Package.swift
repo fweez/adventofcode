@@ -13,7 +13,10 @@ let package = Package(
         /// To start a day, copy and paste this target, updating the name to "dayX"
         .library(
             name: "day0",
-            targets: ["day0"])
+            targets: ["day0"]),
+        .library(
+            name: "day1",
+            targets: ["day1"]),
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-overture.git", from: "0.5.0"),
@@ -28,14 +31,16 @@ let package = Package(
         .target(
             name: "day0",
             dependencies: ["AOCShared", "Overture", "Prelude"]),
-        
+        .target(
+            name: "day1",
+            dependencies: ["AOCShared", "Overture", "Prelude"]),
         .target(
             name: "AOC",
             /// To start a day, add a "dayX" dependency here
-            dependencies: ["AOCShared", "day0"]),
+            dependencies: ["AOCShared", "day0", "day1"]),
         .testTarget(
             name: "AOCTests",
             /// To start a day, add a "dayX" dependency here
-            dependencies: ["day0"]),
+            dependencies: ["day0", "day1"]),
     ]
 )

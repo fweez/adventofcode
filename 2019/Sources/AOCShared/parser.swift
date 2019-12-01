@@ -16,7 +16,8 @@ public struct Parser<A, B>: ParserProtocol where B: Collection {
 public extension Parser {
     func map<B>(_ f: @escaping (A) -> B) -> Parser<B, Seq> {
         Parser<B, Seq> { str -> B? in
-            self.run(&str).map(f)
+            self.run(&str)
+                .map(f)
         }
     }
     

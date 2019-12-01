@@ -1,6 +1,6 @@
 import Foundation
 
-func ingestFile(_ filename: String) -> [String.SubSequence] {
+public func ingestFile(_ filename: String) -> [String.SubSequence] {
     do {
         return try String(contentsOfFile: filename)
             .split(separator: "\n")
@@ -14,7 +14,7 @@ func ingestFile(_ filename: String) -> [String.SubSequence] {
 ///   - parser: Parser of lines in the file to some object
 ///   - filename: Name of the file to parse
 /// - Returns: list of parsed objects
-func parseFile<A>(_ parser: Parser<A, String>, _ filename: String) -> [A] {
+public func parseFile<A>(_ parser: Parser<A, String>, _ filename: String) -> [A] {
     ingestFile(filename)
         .enumerated()
         .map { lineNumber, originalInput -> A in
