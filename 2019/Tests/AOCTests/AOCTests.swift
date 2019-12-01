@@ -2,10 +2,10 @@ import XCTest
 import class Foundation.Bundle
 
 /// To start a day, copy and paste this line, replacing the day
-@testable import day0
+@testable import day1
 
 /// To start a day, copy and paste this test class
-final class Day0Tests: XCTestCase {
+final class DayXTests: XCTestCase {
     
 }
 

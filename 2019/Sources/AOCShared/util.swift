@@ -1,4 +1,5 @@
 import Foundation
+import Overture
 
 public func ingestFile(_ filename: String) -> [String.SubSequence] {
     do {
@@ -36,3 +37,7 @@ public func parseFile<A>(_ parser: Parser<A, String>, _ filename: String) -> [A]
 }
 
 public func force<A>(_ a: A?) -> A { a! }
+
+public let intify: (String.SubSequence) -> Int = pipe(String.init, Int.init, force)
+public let divideBy: (Double) -> (Double) -> Double = flip(curry(/))
+public let subtractBy: (Int) -> (Int) -> Int = flip(curry(-))
