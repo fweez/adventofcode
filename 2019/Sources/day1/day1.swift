@@ -1,25 +1,28 @@
 import AOCShared
+import Overture
 import Foundation
 
 /// To start a new day, copy and paste this file into a new dayX directory in Sources/
-public func part1() { print("Part 1: \(calculateModuleFuel())") }
-public func part2() { print("Part 2: \(calculateTotalFuel())") }
+public func part1() { print("Part 1: \(calculateFuel(stringToModuleFuel))") }
+public func part2() { print("Part 2: \(calculateFuel(stringToTotalFuel))") }
 
-func calculateModuleFuel() -> Int {
+func calculateFuel(_ f: (String.SubSequence) -> Int) -> Int {
     ingestFile("day1.txt")
-        .map { Int(String($0))! }
-        .map(calculateModuleFuel)
+        .map(f)
         .reduce(0, +)
 }
 
-func calculateTotalFuel() -> Int {
-    ingestFile("day1.txt")
-        .map { Int(String($0))! }
-        .map(calculateTotalFuel)
-        .reduce(0, +)
-}
+let intify: (String.SubSequence) -> Int = pipe(String.init, Int.init, force)
 
-func calculateModuleFuel(_ module: Int) -> Int { Int(floor(Double(module) / 3.0)) - 2 }
+let stringToModuleFuel = pipe(intify, calculateModuleFuel)
+let stringToTotalFuel = pipe(intify, calculateTotalFuel)
+
+let calculateModuleFuel: (Int) -> Int =
+    pipe(Double.init,
+         { d -> Double in d / 3.0 },
+         floor,
+         Int.init,
+         { i -> Int in i - 2 })
 
 func calculateTotalFuel(_ module: Int) -> Int {
     guard module >= 2 else { return 0 }
@@ -28,3 +31,4 @@ func calculateTotalFuel(_ module: Int) -> Int {
     guard ff > 0 else { return f }
     return f + ff
 }
+

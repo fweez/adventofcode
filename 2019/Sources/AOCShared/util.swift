@@ -34,3 +34,5 @@ public func parseFile<A>(_ parser: Parser<A, String>, _ filename: String) -> [A]
             return match
         }
 }
+
+public func force<A>(_ a: A?) -> A { a! }
