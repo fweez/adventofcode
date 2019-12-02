@@ -28,16 +28,29 @@ import day25
 
 guard let day = CommandLine.arguments.last else { preconditionFailure("You must specify a day to run") }
 
+let nf = NumberFormatter()
+nf.maximumFractionDigits = 5
+
+func time(_ f: () -> Void) -> String {
+    let start = Date()
+    f()
+    let elapsed = Date().timeIntervalSince(start)
+    return nf.string(for: elapsed) ?? "Couldn't format time \(elapsed)"
+}
+
+func run(_ day: String, _ p1: () -> Void, _ p2: () -> Void) -> Void {
+    print("Day \(day)")
+    print("Part 1 completed in \(time(p1))s")
+    print("Part 2 completed in \(time(p2))s")
+}
+
 switch day {
 /// To start a new day, copy and paste this case, updating to day x
-case "day1":
-    print("Day 1")
-    day1.part1()
-    day1.part2()
-case "day2":
-    print("Day 2")
-    day2.part1()
-    day2.part2()
+case "day1": run("1", day1.part1, day1.part2)
+case "day2": run("2", day2.part1, day2.part2)
 default:
-    assertionFailure("Unknown day \(day)")
+    preconditionFailure("Unknown day \(day)")
 }
+
+
+

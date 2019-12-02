@@ -24,8 +24,8 @@ func findInputs() -> Int {
     let file = ingestFile("day2.txt")
     guard var line = file.first else { preconditionFailure("Didn't read file") }
     guard let originalMemory = opcodeParser.run(&line) else { preconditionFailure("didn't parse") }
-    for noun in Array((1...1000)) {
-        for verb in Array((1...1000)) {
+    for noun in Array((1...originalMemory.count)) {
+        for verb in Array((1...originalMemory.count)) {
             var mem = originalMemory
             mem[1] = noun
             mem[2] = verb
