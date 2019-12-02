@@ -41,3 +41,5 @@ public func force<A>(_ a: A?) -> A { a! }
 public let intify: (String.SubSequence) -> Int = pipe(String.init, Int.init, force)
 public let divideBy: (Double) -> (Double) -> Double = flip(curry(/))
 public let subtractBy: (Int) -> (Int) -> Int = flip(curry(-))
+
+let number: Parser<Substring, String> = optionalPrefix(while: { $0.isNumber })
