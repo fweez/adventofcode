@@ -49,6 +49,8 @@ switch day {
 case "day1": run("1", day1.part1, day1.part2)
 case "day2": run("2", day2.part1, day2.part2)
 case "day3": run("3", day3.part1, day3.part2)
+case "day4": run("4", day4.part1, day4.part2)
+
 default:
     preconditionFailure("Unknown day \(day)")
 }

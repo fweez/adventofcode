@@ -77,3 +77,23 @@ final class Day3Tests: XCTestCase {
 
     }
 }
+
+/// To start a day, copy and paste this line, replacing the day
+@testable import day4
+
+/// To start a day, copy and paste this test class
+final class Day4Tests: XCTestCase {
+    func testDupes() {
+        XCTAssert(hasDupe("11012382"))
+        XCTAssertFalse(hasDupe("1231232321"))
+    }
+    
+    func testIncreasing() {
+        XCTAssert(isIncreasing("123459"))
+        XCTAssertFalse(isIncreasing("123454"))
+    }
+    
+    func testGuesses() {
+        XCTAssertNotEqual(countPasswords(356261...846303), 246)
+    }
+}
