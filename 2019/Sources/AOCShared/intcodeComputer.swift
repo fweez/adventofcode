@@ -1,3 +1,5 @@
+import Overture
+
 enum Opcode: Int {
     case add = 1
     case mul = 2
@@ -26,8 +28,8 @@ func operation(_ f: @escaping (Int, Int) -> Int) -> (ProgramState) -> ProgramSta
         let b = memory[pointer + 2]
         let dest = memory[pointer + 3]
         guard a < memory.count, b < memory.count, dest < memory.count else { return nil }
-        var opcodes = memory
-        opcodes[dest] = f(opcodes[a], opcodes[b])
-        return (opcodes, pointer + 4)
+        var newMemoryState = memory
+        newMemoryState[dest] = f(memory[a], memory[b])
+        return (newMemoryState, pointer + 4)
     }
 }

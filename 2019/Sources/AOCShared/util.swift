@@ -42,4 +42,4 @@ public let intify: (String.SubSequence) -> Int = pipe(String.init, Int.init, for
 public let divideBy: (Double) -> (Double) -> Double = flip(curry(/))
 public let subtractBy: (Int) -> (Int) -> Int = flip(curry(-))
 
-let number: Parser<Substring, String> = optionalPrefix(while: { $0.isNumber })
+public let number: Parser<Substring, String> = optionalPrefix(while: { $0.isNumber })
