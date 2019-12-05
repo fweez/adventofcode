@@ -97,3 +97,55 @@ final class Day4Tests: XCTestCase {
         XCTAssertNotEqual(countPasswords(356261...846303), 246)
     }
 }
+
+/// To start a day, copy and paste this line, replacing the day
+@testable import day5
+
+/// To start a day, copy and paste this test class
+final class Day5Tests: XCTestCase {
+    func testInput() {
+        //let state1 = ProgramState(memory: [1002,4,3,4,33], pointer: 0, input: 0, output: 0)
+        XCTAssertEqual(runIntcodeProgram([1002,4,3,4,33]), [1002,4,3,4,99])
+        XCTAssertEqual(runIntcodeProgram([1101,100,-1,4,0]), [1101,100,-1,4,99])
+    }
+    
+    func testBranches() {
+        /// Using position mode, consider whether the input is equal to 8; output 1 (if it is) or 0 (if it is not).
+        let state1 = ProgramState(memory: [3,9,8,9,10,9,4,9,99,-1,8], input: 8)
+        XCTAssertEqual(runIntcodeProgram(state1)?.output, 1)
+        let state2 = ProgramState(memory: [3,9,8,9,10,9,4,9,99,-1,8], input: 7)
+        XCTAssertEqual(runIntcodeProgram(state2)?.output, 0)
+        
+        /// Using position mode, consider whether the input is less than 8; output 1 (if it is) or 0 (if it is not)
+        let state3 = ProgramState(memory: [3,9,7,9,10,9,4,9,99,-1,8], input: 8)
+        XCTAssertEqual(runIntcodeProgram(state3)?.output, 0)
+        let state4 = ProgramState(memory: [3,9,7,9,10,9,4,9,99,-1,8], input: 9)
+        XCTAssertEqual(runIntcodeProgram(state4)?.output, 0)
+        let state5 = ProgramState(memory: [3,9,7,9,10,9,4,9,99,-1,8], input: 7)
+        XCTAssertEqual(runIntcodeProgram(state5)?.output, 1)
+        
+        let in3 = [3,3,1108,-1,8,3,4,3,99] //Using immediate mode, consider whether the input is equal to 8; output 1 (if it is) or 0 (if it is not).
+        XCTAssertEqual(runIntcodeProgram(ProgramState(memory: in3, input: 8))?.output, 1)
+        XCTAssertEqual(runIntcodeProgram(ProgramState(memory: in3, input: 7))?.output, 0)
+        
+        let in4 = [3,3,1107,-1,8,3,4,3,99] // Using immediate mode, consider whether the input is less than 8; output 1 (if it is) or 0 (if it is not).
+        XCTAssertEqual(runIntcodeProgram(ProgramState(memory: in4, input: 8))?.output, 0)
+        XCTAssertEqual(runIntcodeProgram(ProgramState(memory: in4, input: 7))?.output, 1)
+        
+        let in5 = [3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9]
+        XCTAssertEqual(runIntcodeProgram(ProgramState(memory: in5, input: 8))?.output, 1)
+        XCTAssertEqual(runIntcodeProgram(ProgramState(memory: in5, input: 0))?.output, 0)
+        
+        let in6 = [3,3,1105,-1,9,1101,0,0,12,4,12,99,1]
+        XCTAssertEqual(runIntcodeProgram(ProgramState(memory: in6, input: 8))?.output, 1)
+        XCTAssertEqual(runIntcodeProgram(ProgramState(memory: in6, input: 0))?.output, 0)
+        
+    }
+    
+    func testGuesses() {
+        let input = [3,225,1,225,6,6,1100,1,238,225,104,0,1102,59,58,224,1001,224,-3422,224,4,224,102,8,223,223,101,3,224,224,1,224,223,223,1101,59,30,225,1101,53,84,224,101,-137,224,224,4,224,1002,223,8,223,101,3,224,224,1,223,224,223,1102,42,83,225,2,140,88,224,1001,224,-4891,224,4,224,1002,223,8,223,1001,224,5,224,1,223,224,223,1101,61,67,225,101,46,62,224,1001,224,-129,224,4,224,1002,223,8,223,101,5,224,224,1,223,224,223,1102,53,40,225,1001,35,35,224,1001,224,-94,224,4,224,102,8,223,223,101,6,224,224,1,223,224,223,1101,5,73,225,1002,191,52,224,1001,224,-1872,224,4,224,1002,223,8,223,1001,224,5,224,1,223,224,223,102,82,195,224,101,-738,224,224,4,224,1002,223,8,223,1001,224,2,224,1,224,223,223,1101,83,52,225,1101,36,77,225,1101,9,10,225,1,113,187,224,1001,224,-136,224,4,224,1002,223,8,223,101,2,224,224,1,224,223,223,4,223,99,0,0,0,677,0,0,0,0,0,0,0,0,0,0,0,1105,0,99999,1105,227,247,1105,1,99999,1005,227,99999,1005,0,256,1105,1,99999,1106,227,99999,1106,0,265,1105,1,99999,1006,0,99999,1006,227,274,1105,1,99999,1105,1,280,1105,1,99999,1,225,225,225,1101,294,0,0,105,1,0,1105,1,99999,1106,0,300,1105,1,99999,1,225,225,225,1101,314,0,0,106,0,0,1105,1,99999,1007,226,226,224,1002,223,2,223,1006,224,329,1001,223,1,223,1108,226,226,224,102,2,223,223,1006,224,344,101,1,223,223,1007,677,677,224,102,2,223,223,1006,224,359,101,1,223,223,1108,677,226,224,1002,223,2,223,1005,224,374,1001,223,1,223,7,677,226,224,102,2,223,223,1005,224,389,1001,223,1,223,1008,677,677,224,1002,223,2,223,1005,224,404,101,1,223,223,108,226,226,224,1002,223,2,223,1006,224,419,101,1,223,223,1008,226,677,224,1002,223,2,223,1006,224,434,1001,223,1,223,1107,677,226,224,1002,223,2,223,1005,224,449,101,1,223,223,1008,226,226,224,102,2,223,223,1005,224,464,1001,223,1,223,8,226,226,224,1002,223,2,223,1006,224,479,1001,223,1,223,107,226,677,224,102,2,223,223,1005,224,494,1001,223,1,223,7,226,226,224,102,2,223,223,1005,224,509,1001,223,1,223,107,226,226,224,102,2,223,223,1005,224,524,101,1,223,223,107,677,677,224,1002,223,2,223,1006,224,539,101,1,223,223,8,677,226,224,1002,223,2,223,1006,224,554,101,1,223,223,1107,677,677,224,1002,223,2,223,1005,224,569,101,1,223,223,108,226,677,224,1002,223,2,223,1006,224,584,101,1,223,223,7,226,677,224,1002,223,2,223,1005,224,599,1001,223,1,223,8,226,677,224,102,2,223,223,1006,224,614,1001,223,1,223,108,677,677,224,1002,223,2,223,1006,224,629,1001,223,1,223,1007,226,677,224,1002,223,2,223,1006,224,644,101,1,223,223,1108,226,677,224,102,2,223,223,1005,224,659,1001,223,1,223,1107,226,677,224,102,2,223,223,1006,224,674,1001,223,1,223,4,223,99,226]
+        let state = ProgramState(memory: input, input: 1)
+        XCTAssertEqual(runIntcodeProgram(state)?.output, 7265618)
+    }
+}
+

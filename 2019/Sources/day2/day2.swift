@@ -6,11 +6,6 @@ import Overture
 public func part1() { print("Part 1: \(restore())") }
 public func part2() { print("Part 2: \(findInputs())") }
 
-let opcodeParser: Parser<[Int], String> = zeroOrMore(
-    optionalPrefix(while: { $0.isNumber }),
-    separatedBy: literal(","))
-    .map { $0.compactMap(pipe(String.init, Int.init)) }
-
 func restore() -> Int {
     let file = ingestFile("day2.txt")
     guard var line = file.first else { preconditionFailure("Didn't read file") }
