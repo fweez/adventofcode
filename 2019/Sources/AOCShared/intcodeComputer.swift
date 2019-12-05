@@ -78,18 +78,17 @@ enum Opcode {
     }
     
     
-    func run(_ state: ProgramState) -> ProgramState? {
+    var run: (ProgramState) -> ProgramState? {
         switch self {
-        case let .add(m1, m2): return operation(+, m1, m2)(state)
-        case let .mul(m1, m2): return operation(*, m1, m2)(state)
-        case .put: return putOpt(state)
-        case .get(let m1): return getOpt(m1)(state)
-        case let .jumpIfTrue(m1, m2): return jumpIfTrueOpt(m1, m2)(state)
-        case let .jumpIfFalse(m1, m2): return jumpIfFalseOpt(m1, m2)(state)
-        case let .lessThan(m1, m2): return lessThanOpt(m1, m2)(state)
-        case let .equals(m1, m2): return equalsOpt(m1, m2)(state)
-        case .end: return endOpt(state)
-        
+        case let .add(m1, m2): return operation(+, m1, m2)
+        case let .mul(m1, m2): return operation(*, m1, m2)
+        case .put: return putOpt
+        case .get(let m1): return getOpt(m1)
+        case let .jumpIfTrue(m1, m2): return jumpIfTrueOpt(m1, m2)
+        case let .jumpIfFalse(m1, m2): return jumpIfFalseOpt(m1, m2)
+        case let .lessThan(m1, m2): return lessThanOpt(m1, m2)
+        case let .equals(m1, m2): return equalsOpt(m1, m2)
+        case .end: return endOpt
         }
     }
 }
@@ -104,37 +103,37 @@ func get(_ position: Int, _ mode: ParameterMode, _ state: ProgramState) -> Int? 
     }
 }
 
+func set(_ value: Int, _ position: Int, _ state: ProgramState) -> ProgramState? {
+    guard position < state.memory.count else { return nil }
+    var newState = state
+    newState.memory[position] = value
+    return newState
+}
+
 func operation(_ f: @escaping (Int, Int) -> Int, _ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> ProgramState? {
     return { state in
         fetch3(state, m1, m2)
-            .flatMap { a, b, dest, state in
-                guard dest < state.memory.count else { return nil }
-                var newState = state
-                newState.memory[dest] = f(a, b)
-                return newState
-            }
+            .map { (f($0, $1), $2, $3) }
+            .flatMap(set)
     }
 }
 
 func putOpt(_ state: ProgramState) -> ProgramState? {
-    guard state.pointer < state.memory.count else { return nil }
-    let dest = state.memory[state.pointer]
-    var newState = state
-    newState.memory[dest] = state.input
-    // eat input?
-    newState.pointer += 1
-    return newState
+    fetch(state)
+        .flatMap { set($1.input, $0, $1) }
 }
 
 func getOpt(_ mode: ParameterMode) -> (ProgramState) -> ProgramState? {
     return { state in
-        get(state.pointer, mode, state)
-            .map { dest in
-                var newState = state
-                newState.output = newState.memory[dest]
-                newState.pointer += 1
-                return newState
-        }
+        fetch(state)
+            .flatMap { pa, state in
+                get(pa, mode, state)
+                    .map { ($0, state) } }
+            .map { value, state in
+                var state = state
+                state.output = value
+                return state
+            }
     }
 }
 
@@ -164,10 +163,8 @@ func lessThanOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> 
     return { state in
         fetch3(state, m1, m2)
             .flatMap { a, b, dest, state in
-                var state = state
-                if a < b { state.memory[dest] = 1 }
-                else { state.memory[dest] = 0 }
-                return state
+                if a < b { return set(1, dest, state) }
+                else { return set(0, dest, state) }
             }
     }
 }
@@ -176,10 +173,8 @@ func equalsOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> Pr
     return { state in
         fetch3(state, m1, m2)
             .flatMap { a, b, dest, state in
-                var state = state
-                if a == b { state.memory[dest] = 1 }
-                else { state.memory[dest] = 0 }
-                return state
+                if a == b { return set(1, dest, state) }
+                else { return set(0, dest, state) }
         }
     }
 }
@@ -190,32 +185,43 @@ func endOpt(_ state: ProgramState) -> ProgramState? {
     return state
 }
 
-func fetchOp(_ state: ProgramState) -> (Opcode, ProgramState)? {
-    guard let op = Opcode.init(rawValue: state.memory[state.pointer]) else { return nil }
+func fetch(_ state: ProgramState) -> (Int, ProgramState)? {
+    guard state.pointer < state.memory.count else { return nil }
+    let a = state.memory[state.pointer]
     var state = state
     state.pointer += 1
-    return (op, state)
+    return (a, state)
 }
 
+func fetchOp(_ state: ProgramState) -> (Opcode, ProgramState)? {
+    fetch(state)
+        .flatMap { pa, state in
+            Opcode.init(rawValue: pa).map { ($0, state) }
+        }
+}
+
+
 func fetch2(_ state: ProgramState, _ m1: ParameterMode) -> (Int, Int, ProgramState)? {
-    guard (state.pointer + 2) < state.memory.count else { return nil }
-    let pa = state.memory[state.pointer]
-    guard let a = get(pa, m1, state) else { return nil }
-    let dest = state.memory[state.pointer + 1]
-    var state = state
-    state.pointer += 2
-    return (a, dest, state)
+    fetch(state)
+        .flatMap { pa, state in
+            get(pa, m1, state)
+                .map { ($0, state) }
+        }
+        .flatMap { a, state in
+            fetch(state)
+                .map { (a, $0, $1) }
+        }
 }
 
 func fetch3(_ state: ProgramState, _ m1: ParameterMode, _ m2: ParameterMode) -> (Int, Int, Int, ProgramState)? {
     fetch2(state, m1)
         .flatMap { a, pb, state in
-            guard let b = get(pb, m2, state) else { return nil }
-            guard state.pointer  < state.memory.count else { return nil }
-            let dest = state.memory[state.pointer]
-            var state = state
-            state.pointer += 1
-            return (a, b, dest, state)
+            get(pb, m2, state)
+                .map { (a, $0, state) }
+        }
+        .flatMap { a, b, state in
+            fetch(state)
+                .map { (a, b, $0, $1) }
         }
 }
 
@@ -227,11 +233,8 @@ public func runIntcodeProgram(_ state: ProgramState) -> ProgramState? {
 //    print("State: pointer \(state.pointer), input: \(state.input), output: \(state.output)")
 //    dump(state.memory)
     return fetchOp(state)
-        .flatMap { op, state -> ProgramState? in
-//            dump(op)
-            return op.run(state) }
+        .flatMap { $0.run($1) }
         .flatMap { state -> ProgramState? in
-//            dump(state.memory)
             guard state.running else { return state }
             return runIntcodeProgram(state)
         }
