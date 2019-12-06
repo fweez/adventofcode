@@ -44,13 +44,17 @@ func sumOrbitalTransfers(_ orbits: OrbitDictionary, _ orbited: String.SubSequenc
         }
 }
 
+var distanceMemoization: [[String.SubSequence]: Int] = [:]
 func distTo(_ orbits: OrbitDictionary, _ from: String.SubSequence, _ to: String.SubSequence) -> Int? {
     if orbits[from]?.contains(to) == true { return 0 }
-    return orbits[from]
+    if let memoized = distanceMemoization[[from, to]] { return memoized }
+    let d =  orbits[from]
         .flatMap { children -> Int? in
             children
                 .compactMap { child in distTo(orbits, child, to) }
                 .first
                 .map { $0 + 1 }
         }
+    distanceMemoization[[from, to]] = d
+    return d
 }
