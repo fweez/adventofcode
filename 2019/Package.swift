@@ -16,9 +16,6 @@ let package = Package(
             name: "day2",
             targets: ["day2"]),
         .library(
-            name: "day2",
-            targets: ["day2"]),
-        .library(
             name: "day3",
             targets: ["day3"]),
         .library(

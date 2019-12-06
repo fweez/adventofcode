@@ -41,42 +41,25 @@ enum Opcode {
         ParameterMode.init(rawValue: (rawValue / 100).remainderReportingOverflow(dividingBy: 10).partialValue)
     }
     
-    init?(rawValue: Int) {
+    init(rawValue: Int) {
 //        print("Opcode \(rawValue)")
         let opcode = rawValue.remainderReportingOverflow(dividingBy: 100).partialValue
+        let m1 = ParameterMode.init(rawValue: (rawValue / 100).remainderReportingOverflow(dividingBy: 10).partialValue)!
+        let m2 = ParameterMode.init(rawValue: (rawValue / 1000).remainderReportingOverflow(dividingBy: 10).partialValue)!
         switch opcode {
-        case 1:
-            guard let o: Opcode = Opcode.get2ParameterModes(rawValue).map({ .add($0, $1) }) else { return nil }
-            self = o
-        case 2:
-            guard let o: Opcode = Opcode.get2ParameterModes(rawValue).map({ .mul($0, $1) }) else { return nil }
-            self = o
-        case 3:
-            self = .put
-        case 4:
-            guard let o: Opcode = ParameterMode.init(rawValue: (rawValue / 100).remainderReportingOverflow(dividingBy: 10).partialValue)
-                .map({ .get($0) }) else { return nil }
-            self = o
-        case 5:
-            guard let o: Opcode = Opcode.get2ParameterModes(rawValue).map({ .jumpIfTrue($0, $1) }) else { return nil }
-            self = o
-        case 6:
-            guard let o: Opcode = Opcode.get2ParameterModes(rawValue).map({ .jumpIfFalse($0, $1) }) else { return nil }
-            self = o
-        case 7:
-            guard let o: Opcode = Opcode.get2ParameterModes(rawValue).map({ .lessThan($0, $1) }) else { return nil }
-            self = o
-        case 8:
-            guard let o: Opcode = Opcode.get2ParameterModes(rawValue).map({ .equals($0, $1) }) else { return nil }
-            self = o
-        case 99:
-            self = .end
+        case 1: self = .add(m1, m2)
+        case 2: self = .mul(m1, m2)
+        case 3: self = .put
+        case 4: self = .get(m1)
+        case 5: self = .jumpIfTrue(m1, m2)
+        case 6: self = .jumpIfFalse(m1, m2)
+        case 7: self = .lessThan(m1, m2)
+        case 8: self = .equals(m1, m2)
+        case 99: self = .end
         default:
             preconditionFailure("Unknown opcode \(opcode) (from \(rawValue))")
-            return nil
         }
     }
-    
     
     var run: (ProgramState) -> ProgramState? {
         switch self {
@@ -128,7 +111,8 @@ func getOpt(_ mode: ParameterMode) -> (ProgramState) -> ProgramState? {
         fetch(state)
             .flatMap { pa, state in
                 get(pa, mode, state)
-                    .map { ($0, state) } }
+                    .map { ($0, state) }
+            }
             .map { value, state in
                 var state = state
                 state.output = value
@@ -138,7 +122,7 @@ func getOpt(_ mode: ParameterMode) -> (ProgramState) -> ProgramState? {
 }
 
 func jumpIfTrueOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> ProgramState? {
-    return { state in
+    { state in
         fetch2(state, m1)
             .flatMap { a, pb, state in
                 guard a != 0 else { return state }
@@ -149,7 +133,7 @@ func jumpIfTrueOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -
 }
 
 func jumpIfFalseOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> ProgramState? {
-    return { state in
+    { state in
         fetch2(state, m1)
             .flatMap { a, pb, state in
                 guard a == 0 else { return state }
@@ -160,7 +144,7 @@ func jumpIfFalseOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) 
 }
 
 func lessThanOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> ProgramState? {
-    return { state in
+    { state in
         fetch3(state, m1, m2)
             .flatMap { a, b, dest, state in
                 if a < b { return set(1, dest, state) }
@@ -170,7 +154,7 @@ func lessThanOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> 
 }
 
 func equalsOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> ProgramState? {
-    return { state in
+    { state in
         fetch3(state, m1, m2)
             .flatMap { a, b, dest, state in
                 if a == b { return set(1, dest, state) }
@@ -192,14 +176,6 @@ func fetch(_ state: ProgramState) -> (Int, ProgramState)? {
     state.pointer += 1
     return (a, state)
 }
-
-func fetchOp(_ state: ProgramState) -> (Opcode, ProgramState)? {
-    fetch(state)
-        .flatMap { pa, state in
-            Opcode.init(rawValue: pa).map { ($0, state) }
-        }
-}
-
 
 func fetch2(_ state: ProgramState, _ m1: ParameterMode) -> (Int, Int, ProgramState)? {
     fetch(state)
@@ -232,8 +208,10 @@ public func runIntcodeProgram(_ memory: [Int], _ pointer: Int = 0) -> [Int]? {
 public func runIntcodeProgram(_ state: ProgramState) -> ProgramState? {
 //    print("State: pointer \(state.pointer), input: \(state.input), output: \(state.output)")
 //    dump(state.memory)
-    return fetchOp(state)
-        .flatMap { $0.run($1) }
+    return fetch(state)
+        .flatMap { pa, state in
+            Opcode(rawValue: pa).run(state)
+        }
         .flatMap { state -> ProgramState? in
             guard state.running else { return state }
             return runIntcodeProgram(state)
