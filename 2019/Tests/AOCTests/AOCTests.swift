@@ -151,3 +151,53 @@ final class Day5Tests: XCTestCase {
     }
 }
 
+/// To start a day, copy and paste this line, replacing the day
+@testable import day6
+
+/// To start a day, copy and paste this test class
+final class Day6Tests: XCTestCase {
+    func testDirectAndIndirect() {
+        XCTAssertEqual(sumChildrenOf(OrbitDictionary()), 0)
+        let in1 = ["COM)A"].reduce(OrbitDictionary(), createOrbits)
+        XCTAssertEqual(sumChildrenOf(in1), 1)
+        let sample = [
+            "COM)B",
+            "B)C",
+            "C)D",
+            "D)E",
+            "E)F",
+            "B)G",
+            "G)H",
+            "D)I",
+            "E)J",
+            "J)K",
+            "K)L",
+        ].reduce(OrbitDictionary(), createOrbits)
+        XCTAssertEqual(sumChildrenOf(sample), 42)
+    }
+    
+    func testTransfers() {
+        let in1 = [
+            "COM)A",
+            "A)SAN",
+            "A)YOU"
+        ].reduce(OrbitDictionary(), createOrbits)
+        XCTAssertEqual(sumOrbitalTransfers(in1), 0)
+        let in2 = [
+            "COM)B",
+            "B)C",
+            "C)D",
+            "D)E",
+            "E)F",
+            "B)G",
+            "G)H",
+            "D)I",
+            "E)J",
+            "J)K",
+            "K)L",
+            "K)YOU",
+            "I)SAN",
+        ].reduce(OrbitDictionary(), createOrbits)
+        XCTAssertEqual(sumOrbitalTransfers(in2), 4)
+    }
+}

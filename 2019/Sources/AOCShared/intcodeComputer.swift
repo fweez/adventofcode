@@ -17,7 +17,6 @@ public struct ProgramState {
         self.pointer = pointer
         self.input = input
         self.output = output
-        
     }
 }
 
@@ -31,15 +30,6 @@ enum Opcode {
     case lessThan(ParameterMode, ParameterMode)
     case equals(ParameterMode, ParameterMode)
     case end
-    
-    static func get2ParameterModes(_ rawValue: Int) -> (ParameterMode, ParameterMode)? {
-        zip(get1ParameterMode(rawValue),
-            ParameterMode.init(rawValue: (rawValue / 1000).remainderReportingOverflow(dividingBy: 10).partialValue))
-    }
-    
-    static func get1ParameterMode(_ rawValue: Int) -> ParameterMode? {
-        ParameterMode.init(rawValue: (rawValue / 100).remainderReportingOverflow(dividingBy: 10).partialValue)
-    }
     
     init(rawValue: Int) {
 //        print("Opcode \(rawValue)")
@@ -86,37 +76,38 @@ func get(_ position: Int, _ mode: ParameterMode, _ state: ProgramState) -> Int? 
     }
 }
 
-func set(_ value: Int, _ position: Int, _ state: ProgramState) -> ProgramState? {
+func setMemory(_ value: Int, _ position: Int, _ state: ProgramState) -> ProgramState? {
     guard position < state.memory.count else { return nil }
     var newState = state
     newState.memory[position] = value
     return newState
 }
 
+func setOutput(_ value: Int, _ state: ProgramState) -> ProgramState {
+    var state = state
+    state.output = value
+    return state
+}
+
 func operation(_ f: @escaping (Int, Int) -> Int, _ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> ProgramState? {
-    return { state in
+    { state in
         fetch3(state, m1, m2)
             .map { (f($0, $1), $2, $3) }
-            .flatMap(set)
+            .flatMap(setMemory)
     }
 }
 
 func putOpt(_ state: ProgramState) -> ProgramState? {
     fetch(state)
-        .flatMap { set($1.input, $0, $1) }
+        .flatMap { setMemory($1.input, $0, $1) }
 }
 
 func getOpt(_ mode: ParameterMode) -> (ProgramState) -> ProgramState? {
-    return { state in
+    { state in
         fetch(state)
             .flatMap { pa, state in
                 get(pa, mode, state)
-                    .map { ($0, state) }
-            }
-            .map { value, state in
-                var state = state
-                state.output = value
-                return state
+                    .map { setOutput($0, state) }
             }
     }
 }
@@ -147,8 +138,8 @@ func lessThanOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> 
     { state in
         fetch3(state, m1, m2)
             .flatMap { a, b, dest, state in
-                if a < b { return set(1, dest, state) }
-                else { return set(0, dest, state) }
+                if a < b { return setMemory(1, dest, state) }
+                else { return setMemory(0, dest, state) }
             }
     }
 }
@@ -157,8 +148,8 @@ func equalsOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> Pr
     { state in
         fetch3(state, m1, m2)
             .flatMap { a, b, dest, state in
-                if a == b { return set(1, dest, state) }
-                else { return set(0, dest, state) }
+                if a == b { return setMemory(1, dest, state) }
+                else { return setMemory(0, dest, state) }
         }
     }
 }
