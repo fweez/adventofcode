@@ -30,31 +30,32 @@ func sumChildrenOf(_ orbits: OrbitDictionary, _ orbited: String.SubSequence = "C
 
 func sumOrbitalTransfers(_ orbits: OrbitDictionary, _ orbited: String.SubSequence = "COM") -> Int? {
     orbits[orbited]
-        .flatMap { children -> Int? in
+        .flatMap { children in
             children
                 .compactMap { child in distTo(orbits, child, "SAN").flatMap { (child, $0) } }
                 .first
-                .flatMap { santaChild, santaDist -> Int? in
-                    distTo(orbits, santaChild, "YOU")
-                        .map {
-                            sumOrbitalTransfers(orbits, santaChild) ??
-                            ($0 + santaDist) }
+        }
+        .flatMap { santaChild, santaDist in
+            distTo(orbits, santaChild, "YOU")
+                .map {
+                    sumOrbitalTransfers(orbits, santaChild) ??
+                        ($0 + santaDist)
                 }
-            
         }
 }
 
-var distanceMemoization: [[String.SubSequence]: Int] = [:]
-func distTo(_ orbits: OrbitDictionary, _ from: String.SubSequence, _ to: String.SubSequence) -> Int? {
+func _distTo(_ orbits: OrbitDictionary, _ from: String.SubSequence, _ to: String.SubSequence) -> Int? {
     if orbits[from]?.contains(to) == true { return 0 }
-    if let memoized = distanceMemoization[[from, to]] { return memoized }
-    let d =  orbits[from]
+    return orbits[from]
         .flatMap { children -> Int? in
             children
                 .compactMap { child in distTo(orbits, child, to) }
                 .first
                 .map { $0 + 1 }
         }
-    distanceMemoization[[from, to]] = d
-    return d
 }
+
+var memoizedDistTo = Memoize3(_distTo,
+    keyGenerator: { _, f, t in [f, t] }
+)
+let distTo = { memoizedDistTo.run($0, $1, $2) }

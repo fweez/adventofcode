@@ -43,3 +43,51 @@ public let divideBy: (Double) -> (Double) -> Double = flip(curry(/))
 public let subtractBy: (Int) -> (Int) -> Int = flip(curry(-))
 
 public let number: Parser<Substring, String> = optionalPrefix(while: { $0.isNumber })
+
+public func memoize<A, B>(_ f: @escaping (A) -> B) -> (A) -> B where A: Hashable {
+    var memoization: [A: B] = [:]
+    return { a in
+        if let v = memoization[a] { return v }
+        let v = f(a)
+        memoization[a] = v
+        return v
+    }
+}
+
+/// Okay, what you actually want is a structure, generic along A, B, C..., which wraps a function
+/// (A, B) -> C
+/// and has access to a key generator
+/// (A, B) -> Key
+/// that it uses to generate lookups into the memoization dictionary (which is [Key: C])
+
+public struct Memoize2<A, B, C, Key> where Key: Hashable {
+    let wrappedFn: (A, B) -> C
+    let keyGenerator: (A, B) -> Key
+    var memoization: [Key: C] = [:]
+    mutating func run(_ a: A, _ b: B) -> C {
+        let key = keyGenerator(a, b)
+        if let v = memoization[key] { return v }
+        let v = wrappedFn(a, b)
+        memoization[key] = v
+        return v
+    }
+}
+
+public struct Memoize3<A, B, C, D, Key> where Key: Hashable {
+    public let wrappedFn: (A, B, C) -> D
+    public let keyGenerator: (A, B, C) -> Key
+    var memoization: [Key: D] = [:]
+    
+    public init (_ wrappedFn: @escaping (A, B, C) -> D, keyGenerator: @escaping (A, B, C) -> Key) {
+        self.wrappedFn = wrappedFn
+        self.keyGenerator = keyGenerator
+    }
+    
+    public mutating func run(_ a: A, _ b: B, _ c: C) -> D {
+        let key = keyGenerator(a, b, c)
+        if let v = memoization[key] { return v }
+        let v = wrappedFn(a, b, c)
+        memoization[key] = v
+        return v
+    }
+}

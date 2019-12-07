@@ -1,22 +1,35 @@
 import Overture
 
+var debug = false
+func debugprint(_ s: String) {
+    guard debug else { return }
+    print(s)
+}
+
 enum ParameterMode: Int {
     case position = 0
     case immediate = 1
 }
 
+public enum ProgramRunState {
+    case running
+    case awaitingInput
+    case stopped
+}
+
 public struct ProgramState {
     public var memory: [Int]
     public var pointer: Int
-    public var input: Int
+    public var inputs: [Int] = []
     public var output: Int
-    public var running: Bool = true
+    public var runState: ProgramRunState = .running
     
-    public init(memory: [Int], pointer: Int = 0, input: Int, output: Int = Int.max) {
+    public init(memory: [Int], pointer: Int = 0, input: Int?, output: Int = 0) {
         self.memory = memory
         self.pointer = pointer
-        self.input = input
+        if let input = input { self.inputs = [input] }
         self.output = output
+        debugprint("Initialized ProgramState with \(self.memory.count) item program; fp at \(self.pointer); input is \(self.inputs); output is \(self.output)")
     }
 }
 
@@ -32,7 +45,7 @@ enum Opcode {
     case end
     
     init(rawValue: Int) {
-//        print("Opcode \(rawValue)")
+//        debugprint("Opcode \(rawValue)")
         let opcode = rawValue.remainderReportingOverflow(dividingBy: 100).partialValue
         let m1 = ParameterMode.init(rawValue: (rawValue / 100).remainderReportingOverflow(dividingBy: 10).partialValue)!
         let m2 = ParameterMode.init(rawValue: (rawValue / 1000).remainderReportingOverflow(dividingBy: 10).partialValue)!
@@ -52,6 +65,7 @@ enum Opcode {
     }
     
     var run: (ProgramState) -> ProgramState? {
+        debugprint("Run \(self)")
         switch self {
         case let .add(m1, m2): return operation(+, m1, m2)
         case let .mul(m1, m2): return operation(*, m1, m2)
@@ -67,16 +81,32 @@ enum Opcode {
 }
 
 func get(_ position: Int, _ mode: ParameterMode, _ state: ProgramState) -> Int? {
+    debugprint("Get \(position) (mode \(mode)")
     switch mode {
     case .position:
         guard position < state.memory.count else { return nil }
+        debugprint("--> \(state.memory[position])")
         return state.memory[position]
     case .immediate:
+        debugprint("--> \(position)")
         return position
     }
 }
 
+func getInput(_ state: ProgramState) -> (Int?, ProgramState) {
+    debugprint("Get input from \(state.inputs)")
+    var state = state
+    guard state.inputs.count > 0 else {
+        state.runState = .awaitingInput
+        state.pointer -= 1 // rewind the fp back so we re-process this getInput op next time through.
+        return (nil, state)
+    }
+    let next = state.inputs.removeFirst()
+    return (next, state)
+}
+
 func setMemory(_ value: Int, _ position: Int, _ state: ProgramState) -> ProgramState? {
+    debugprint("Set \(position) to \(value)")
     guard position < state.memory.count else { return nil }
     var newState = state
     newState.memory[position] = value
@@ -84,8 +114,17 @@ func setMemory(_ value: Int, _ position: Int, _ state: ProgramState) -> ProgramS
 }
 
 func setOutput(_ value: Int, _ state: ProgramState) -> ProgramState {
+    debugprint("Set output to \(value)")
     var state = state
     state.output = value
+    return state
+}
+
+public func setInput(_ value: Int, _ state: ProgramState) -> ProgramState {
+    debugprint("Set input to \(value)")
+    var state = state
+    if case .awaitingInput = state.runState { state.runState = .running }
+    state.inputs.append(value)
     return state
 }
 
@@ -98,8 +137,13 @@ func operation(_ f: @escaping (Int, Int) -> Int, _ m1: ParameterMode, _ m2: Para
 }
 
 func putOpt(_ state: ProgramState) -> ProgramState? {
-    fetch(state)
-        .flatMap { setMemory($1.input, $0, $1) }
+    let (input, state) = getInput(state)
+    return input.flatMap { input in
+        fetch(state)
+            .flatMap { dest, state -> ProgramState? in
+                setMemory(input, dest, state)
+            }
+    } ?? state
 }
 
 func getOpt(_ mode: ParameterMode) -> (ProgramState) -> ProgramState? {
@@ -156,7 +200,7 @@ func equalsOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> Pr
 
 func endOpt(_ state: ProgramState) -> ProgramState? {
     var state = state
-    state.running = false
+    state.runState = .stopped
     return state
 }
 
@@ -197,14 +241,17 @@ public func runIntcodeProgram(_ memory: [Int], _ pointer: Int = 0) -> [Int]? {
 }
 
 public func runIntcodeProgram(_ state: ProgramState) -> ProgramState? {
-//    print("State: pointer \(state.pointer), input: \(state.input), output: \(state.output)")
+//    debugprint("State: pointer \(state.pointer), input: \(state.input), output: \(state.output)")
 //    dump(state.memory)
     return fetch(state)
-        .flatMap { pa, state in
-            Opcode(rawValue: pa).run(state)
+        .flatMap { pa, state -> ProgramState? in
+            debugprint("Fetched opcode, function pointer at \(state.pointer)")
+            return Opcode(rawValue: pa).run(state)
         }
         .flatMap { state -> ProgramState? in
-            guard state.running else { return state }
+            debugprint("Ran opcode, function pointer at \(state.pointer)")
+            debugprint("Program state: \(state.runState)")
+            guard case .running = state.runState else { return state }
             return runIntcodeProgram(state)
         }
 }
