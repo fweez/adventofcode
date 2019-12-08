@@ -1,9 +1,9 @@
 import Overture
 
 var debug = false
-func debugprint(_ s: String) {
+func debugprint(_ message: @autoclosure () -> String) {
     guard debug else { return }
-    print(s)
+    print(message())
 }
 
 enum ParameterMode: Int {
@@ -45,7 +45,7 @@ enum Opcode {
     case end
     
     init(rawValue: Int) {
-//        debugprint("Opcode \(rawValue)")
+        debugprint("Opcode \(rawValue)")
         let opcode = rawValue.remainderReportingOverflow(dividingBy: 100).partialValue
         let m1 = ParameterMode.init(rawValue: (rawValue / 100).remainderReportingOverflow(dividingBy: 10).partialValue)!
         let m2 = ParameterMode.init(rawValue: (rawValue / 1000).remainderReportingOverflow(dividingBy: 10).partialValue)!

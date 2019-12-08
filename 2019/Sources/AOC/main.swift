@@ -53,6 +53,7 @@ case "day4": run("4", day4.part1, day4.part2)
 case "day5": run("5", day5.part1, day5.part2)
 case "day6": run("6", day6.part1, day6.part2)
 case "day7": run("7", day7.part1, day7.part2)
+case "day8": run("8", day8.part1, day8.part2)
 
 default:
     preconditionFailure("Unknown day \(day)")
