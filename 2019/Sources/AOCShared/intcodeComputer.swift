@@ -9,6 +9,7 @@ func debugprint(_ message: @autoclosure () -> String) {
 enum ParameterMode: Int {
     case position = 0
     case immediate = 1
+    case relative = 2
 }
 
 public enum ProgramRunState {
@@ -18,30 +19,33 @@ public enum ProgramRunState {
 }
 
 public struct ProgramState {
-    public var memory: [Int]
+    public var memory: [Int: Int]
     public var pointer: Int
     public var inputs: [Int] = []
-    public var output: Int
+    public var outputs: [Int] = []
     public var runState: ProgramRunState = .running
+    public var relativeBase = 0
     
-    public init(memory: [Int], pointer: Int = 0, input: Int?, output: Int = 0) {
-        self.memory = memory
+    public var output: Int { outputs.last ?? Int.min }
+    
+    public init(memory: [Int], pointer: Int = 0, input: Int? = nil) {
+        self.memory = Dictionary<Int, Int>(uniqueKeysWithValues: Array(memory.enumerated()))
         self.pointer = pointer
         if let input = input { self.inputs = [input] }
-        self.output = output
-        debugprint("Initialized ProgramState with \(self.memory.count) item program; fp at \(self.pointer); input is \(self.inputs); output is \(self.output)")
+        debugprint("Initialized ProgramState with \(self.memory.count) item program; fp at \(self.pointer); input is \(self.inputs)")
     }
 }
 
 enum Opcode {
-    case add(ParameterMode, ParameterMode)
-    case mul(ParameterMode, ParameterMode)
-    case put
+    case add(ParameterMode, ParameterMode, ParameterMode)
+    case mul(ParameterMode, ParameterMode, ParameterMode)
+    case put(ParameterMode)
     case get(ParameterMode)
     case jumpIfTrue(ParameterMode, ParameterMode)
     case jumpIfFalse(ParameterMode, ParameterMode)
-    case lessThan(ParameterMode, ParameterMode)
-    case equals(ParameterMode, ParameterMode)
+    case lessThan(ParameterMode, ParameterMode, ParameterMode)
+    case equals(ParameterMode, ParameterMode, ParameterMode)
+    case adjustRelativeBase(ParameterMode)
     case end
     
     init(rawValue: Int) {
@@ -49,15 +53,17 @@ enum Opcode {
         let opcode = rawValue.remainderReportingOverflow(dividingBy: 100).partialValue
         let m1 = ParameterMode.init(rawValue: (rawValue / 100).remainderReportingOverflow(dividingBy: 10).partialValue)!
         let m2 = ParameterMode.init(rawValue: (rawValue / 1000).remainderReportingOverflow(dividingBy: 10).partialValue)!
+        let m3 = ParameterMode.init(rawValue: (rawValue / 10000).remainderReportingOverflow(dividingBy: 10).partialValue)!
         switch opcode {
-        case 1: self = .add(m1, m2)
-        case 2: self = .mul(m1, m2)
-        case 3: self = .put
+        case 1: self = .add(m1, m2, m3)
+        case 2: self = .mul(m1, m2, m3)
+        case 3: self = .put(m1)
         case 4: self = .get(m1)
         case 5: self = .jumpIfTrue(m1, m2)
         case 6: self = .jumpIfFalse(m1, m2)
-        case 7: self = .lessThan(m1, m2)
-        case 8: self = .equals(m1, m2)
+        case 7: self = .lessThan(m1, m2, m3)
+        case 8: self = .equals(m1, m2, m3)
+        case 9: self = .adjustRelativeBase(m1)
         case 99: self = .end
         default:
             preconditionFailure("Unknown opcode \(opcode) (from \(rawValue))")
@@ -67,29 +73,33 @@ enum Opcode {
     var run: (ProgramState) -> ProgramState? {
         debugprint("Run \(self)")
         switch self {
-        case let .add(m1, m2): return operation(+, m1, m2)
-        case let .mul(m1, m2): return operation(*, m1, m2)
-        case .put: return putOpt
+        case let .add(m1, m2, m3): return operation(+, m1, m2, m3)
+        case let .mul(m1, m2, m3): return operation(*, m1, m2, m3)
+        case .put(let m1): return putOpt(m1)
         case .get(let m1): return getOpt(m1)
         case let .jumpIfTrue(m1, m2): return jumpIfTrueOpt(m1, m2)
         case let .jumpIfFalse(m1, m2): return jumpIfFalseOpt(m1, m2)
-        case let .lessThan(m1, m2): return lessThanOpt(m1, m2)
-        case let .equals(m1, m2): return equalsOpt(m1, m2)
+        case let .lessThan(m1, m2, m3): return lessThanOpt(m1, m2, m3)
+        case let .equals(m1, m2, m3): return equalsOpt(m1, m2, m3)
+        case .adjustRelativeBase(let m1): return adjustRelativeOpt(m1)
         case .end: return endOpt
         }
     }
 }
 
 func get(_ position: Int, _ mode: ParameterMode, _ state: ProgramState) -> Int? {
-    debugprint("Get \(position) (mode \(mode)")
+    debugprint("Get \(position) (mode \(mode))")
     switch mode {
     case .position:
-        guard position < state.memory.count else { return nil }
-        debugprint("--> \(state.memory[position])")
-        return state.memory[position]
+        debugprint("--> \(state.memory[position] == nil ? "<new memory> 0" : "\(state.memory[position]!)")")
+        return state.memory[position] ?? 0
     case .immediate:
         debugprint("--> \(position)")
         return position
+    case .relative:
+        debugprint("resolved relative addr: \(position + state.relativeBase)")
+        debugprint("--> \(state.memory[position + state.relativeBase] ?? Int.min)")
+        return state.memory[position + state.relativeBase] ?? 0
     }
 }
 
@@ -107,7 +117,6 @@ func getInput(_ state: ProgramState) -> (Int?, ProgramState) {
 
 func setMemory(_ value: Int, _ position: Int, _ state: ProgramState) -> ProgramState? {
     debugprint("Set \(position) to \(value)")
-    guard position < state.memory.count else { return nil }
     var newState = state
     newState.memory[position] = value
     return newState
@@ -116,7 +125,7 @@ func setMemory(_ value: Int, _ position: Int, _ state: ProgramState) -> ProgramS
 func setOutput(_ value: Int, _ state: ProgramState) -> ProgramState {
     debugprint("Set output to \(value)")
     var state = state
-    state.output = value
+    state.outputs.append(value)
     return state
 }
 
@@ -128,59 +137,63 @@ public func setInput(_ value: Int, _ state: ProgramState) -> ProgramState {
     return state
 }
 
-func operation(_ f: @escaping (Int, Int) -> Int, _ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> ProgramState? {
+func operation(_ f: @escaping (Int, Int) -> Int, _ m1: ParameterMode, _ m2: ParameterMode, _ m3: ParameterMode) -> (ProgramState) -> ProgramState? {
     { state in
-        fetch3(state, m1, m2)
+        fetch3(state, m1, m2, destMode: m3)
             .map { (f($0, $1), $2, $3) }
             .flatMap(setMemory)
     }
 }
 
-func putOpt(_ state: ProgramState) -> ProgramState? {
-    let (input, state) = getInput(state)
-    return input.flatMap { input in
-        fetch(state)
-            .flatMap { dest, state -> ProgramState? in
-                setMemory(input, dest, state)
-            }
-    } ?? state
+func putOpt(_ mode: ParameterMode) -> (ProgramState) -> ProgramState? {
+    { state in
+        let (input, state) = getInput(state)
+        return input.flatMap { input in
+            fetch(state, .immediate)
+                .flatMap { dest, state -> ProgramState? in
+                    switch mode {
+                    case .position:
+                        return setMemory(input, dest, state)
+                    case .immediate:
+                        fatalError("Cannot put in immediate mode")
+                    case .relative:
+                        return setMemory(input, dest + state.relativeBase, state)
+                    }
+                }
+        }
+    }
 }
 
 func getOpt(_ mode: ParameterMode) -> (ProgramState) -> ProgramState? {
     { state in
-        fetch(state)
-            .flatMap { pa, state in
-                get(pa, mode, state)
-                    .map { setOutput($0, state) }
-            }
+        fetch(state, mode)
+            .flatMap(setOutput)
     }
 }
 
 func jumpIfTrueOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> ProgramState? {
     { state in
-        fetch2(state, m1)
-            .flatMap { a, pb, state in
+        fetch2(state, m1, m2)
+            .flatMap { a, b, state in
                 guard a != 0 else { return state }
-                return get(pb, m2, state)
-                    .map { with(state, set(\.pointer, $0)) }
-        }
+                return with(state, set(\.pointer, b))
+            }
     }
 }
 
 func jumpIfFalseOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> ProgramState? {
     { state in
-        fetch2(state, m1)
-            .flatMap { a, pb, state in
+        fetch2(state, m1, m2)
+            .flatMap { a, b, state in
                 guard a == 0 else { return state }
-                return get(pb, m2, state)
-                    .map { with(state, set(\.pointer, $0)) }
+                return with(state, set(\.pointer, b))
             }
     }
 }
 
-func lessThanOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> ProgramState? {
+func lessThanOpt(_ m1: ParameterMode, _ m2: ParameterMode, _ m3: ParameterMode) -> (ProgramState) -> ProgramState? {
     { state in
-        fetch3(state, m1, m2)
+        fetch3(state, m1, m2, destMode: m3)
             .flatMap { a, b, dest, state in
                 if a < b { return setMemory(1, dest, state) }
                 else { return setMemory(0, dest, state) }
@@ -188,9 +201,9 @@ func lessThanOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> 
     }
 }
 
-func equalsOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> ProgramState? {
+func equalsOpt(_ m1: ParameterMode, _ m2: ParameterMode, _ m3: ParameterMode) -> (ProgramState) -> ProgramState? {
     { state in
-        fetch3(state, m1, m2)
+        fetch3(state, m1, m2, destMode: m3)
             .flatMap { a, b, dest, state in
                 if a == b { return setMemory(1, dest, state) }
                 else { return setMemory(0, dest, state) }
@@ -198,62 +211,69 @@ func equalsOpt(_ m1: ParameterMode, _ m2: ParameterMode) -> (ProgramState) -> Pr
     }
 }
 
-func endOpt(_ state: ProgramState) -> ProgramState? {
-    var state = state
-    state.runState = .stopped
-    return state
+func adjustRelativeOpt(_ m1: ParameterMode) -> (ProgramState) -> ProgramState? {
+    { state in
+        fetch(state, m1)
+            .flatMap { a, state in
+                over(\ProgramState.relativeBase, { $0 + a })(state)
+            }
+    }
 }
 
-func fetch(_ state: ProgramState) -> (Int, ProgramState)? {
-    guard state.pointer < state.memory.count else { return nil }
-    let a = state.memory[state.pointer]
-    var state = state
-    state.pointer += 1
-    return (a, state)
+let endOpt = set(\ProgramState.runState, .stopped)
+
+func fetch(_ state: ProgramState, _ m1: ParameterMode) -> (Int, ProgramState)? {
+    debugprint("Fetch memory[\(state.pointer)]")
+    return state.memory[state.pointer]
+        .flatMap { get($0, m1, state) }
+        .flatMap { ($0, over(\ProgramState.pointer, { $0 + 1 })(state)) }
 }
 
-func fetch2(_ state: ProgramState, _ m1: ParameterMode) -> (Int, Int, ProgramState)? {
-    fetch(state)
-        .flatMap { pa, state in
-            get(pa, m1, state)
-                .map { ($0, state) }
-        }
+func fetch2(_ state: ProgramState, _ m1: ParameterMode, _ m2: ParameterMode) -> (Int, Int, ProgramState)? {
+    fetch(state, m1)
         .flatMap { a, state in
-            fetch(state)
+            fetch(state, m2)
                 .map { (a, $0, $1) }
         }
 }
 
-func fetch3(_ state: ProgramState, _ m1: ParameterMode, _ m2: ParameterMode) -> (Int, Int, Int, ProgramState)? {
-    fetch2(state, m1)
-        .flatMap { a, pb, state in
-            get(pb, m2, state)
-                .map { (a, $0, state) }
-        }
+func fetch3(_ state: ProgramState, _ m1: ParameterMode, _ m2: ParameterMode, destMode: ParameterMode) -> (Int, Int, Int, ProgramState)? {
+    fetch2(state, m1, m2)
         .flatMap { a, b, state in
-            fetch(state)
-                .map { (a, b, $0, $1) }
+            fetch(state, .immediate)
+                .map { dp, state in
+                    switch destMode {
+                    case .immediate: fatalError("Destination cannot be in immediate mode")
+                    case .position: return (a, b, dp, state)
+                    case .relative: return (a, b, state.relativeBase + dp, state)
+                    }
+                }
         }
 }
 
 public func runIntcodeProgram(_ memory: [Int], _ pointer: Int = 0) -> [Int]? {
-    runIntcodeProgram(ProgramState(memory: memory, pointer: pointer, input: Int.max, output: Int.max))?.memory
+    runIntcodeProgram(ProgramState(memory: memory, pointer: pointer, input: Int.max))?.memory
+        .sorted { $0.0 < $1.0 }
+        .map { $0.1 }
 }
 
 public func runIntcodeProgram(_ state: ProgramState) -> ProgramState? {
 //    debugprint("State: pointer \(state.pointer), input: \(state.input), output: \(state.output)")
 //    dump(state.memory)
-    return fetch(state)
-        .flatMap { pa, state -> ProgramState? in
-            debugprint("Fetched opcode, function pointer at \(state.pointer)")
-            return Opcode(rawValue: pa).run(state)
+    var state: ProgramState? = state
+    while let oldState = state, oldState.runState == .running {
+        let newState = fetch(oldState, .immediate)
+            .flatMap { a, state -> ProgramState? in
+                debugprint("Fetched opcode, function pointer at \(state.pointer), relative base at \(state.relativeBase)")
+                return Opcode(rawValue: a).run(state)
         }
-        .flatMap { state -> ProgramState? in
-            debugprint("Ran opcode, function pointer at \(state.pointer)")
+        state = newState
+        if let state = state {
+            debugprint("Ran opcode, function pointer at \(state.pointer), relative base at \(state.relativeBase)")
             debugprint("Program state: \(state.runState)")
-            guard case .running = state.runState else { return state }
-            return runIntcodeProgram(state)
         }
+    }
+    return state
 }
 
 let intParser = zip(
