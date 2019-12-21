@@ -22,7 +22,9 @@ public struct ProgramState {
     public var memory: [Int: Int]
     public var pointer: Int
     public var inputs: [Int] = []
+    public var inputBlock: (() -> Int)? = nil
     public var outputs: [Int] = []
+    public var outputBlock: ((Int) -> Void)? = nil
     public var runState: ProgramRunState = .running
     public var relativeBase = 0
     
@@ -33,6 +35,12 @@ public struct ProgramState {
         self.pointer = pointer
         if let input = input { self.inputs = [input] }
         debugprint("Initialized ProgramState with \(self.memory.count) item program; fp at \(self.pointer); input is \(self.inputs)")
+    }
+    
+    public init(memory: [Int], inputBlock: @escaping () -> Int, outputBlock: @escaping (Int) -> Void) {
+        self.init(memory: memory)
+        self.inputBlock = inputBlock
+        self.outputBlock = outputBlock
     }
 }
 
@@ -104,6 +112,10 @@ func get(_ position: Int, _ mode: ParameterMode, _ state: ProgramState) -> Int? 
 }
 
 func getInput(_ state: ProgramState) -> (Int?, ProgramState) {
+    if let b = state.inputBlock {
+        debugprint("Getting input from an input block")
+        return (b(), state)
+    }
     debugprint("Get input from \(state.inputs)")
     var state = state
     guard state.inputs.count > 0 else {
@@ -123,6 +135,10 @@ func setMemory(_ value: Int, _ position: Int, _ state: ProgramState) -> ProgramS
 }
 
 func setOutput(_ value: Int, _ state: ProgramState) -> ProgramState {
+    if let b = state.outputBlock {
+        debugprint("Setting output to output block")
+        b(value)
+    }
     debugprint("Set output to \(value)")
     var state = state
     state.outputs.append(value)
@@ -148,6 +164,7 @@ func operation(_ f: @escaping (Int, Int) -> Int, _ m1: ParameterMode, _ m2: Para
 func putOpt(_ mode: ParameterMode) -> (ProgramState) -> ProgramState? {
     { state in
         let (input, state) = getInput(state)
+        if state.runState == .awaitingInput { return state }
         return input.flatMap { input in
             fetch(state, .immediate)
                 .flatMap { dest, state -> ProgramState? in
@@ -275,6 +292,8 @@ public func runIntcodeProgram(_ state: ProgramState) -> ProgramState? {
     }
     return state
 }
+
+
 
 let intParser = zip(
     zeroOrMore(literal("-")),

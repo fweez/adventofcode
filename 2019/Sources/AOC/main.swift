@@ -50,7 +50,7 @@ func run<A>(_ day: String, _ parse: (String) -> A, _ p1: (A) -> Void, _ p2: (A) 
     var parsedInput: A?
     print("Input file parsed in \(time({ parsedInput = parse(inputFileName) }))s")
     print("Part 1 completed in \(time({ p1(parsedInput!) }))")
-    print("Part 1 completed in \(time({ p2(parsedInput!) }))")
+    print("Part 2 completed in \(time({ p2(parsedInput!) }))")
 }
 
 switch day {
@@ -63,6 +63,9 @@ case "day6": run("6", day6.part1, day6.part2)
 case "day7": run("7", day7.part1, day7.part2)
 case "day8": run("8", day8.parse, day8.part1, day8.part2)
 case "day9": run("9", day9.parse, day9.part1, day9.part2)
+case "day10": run("10", day10.parse, day10.part1, day10.part2)
+case "day11": run("11", day11.parse, day11.part1, day11.part2)
+
 default:
     preconditionFailure("Unknown day \(day)")
 }

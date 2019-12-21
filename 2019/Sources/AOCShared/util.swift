@@ -91,3 +91,19 @@ public struct Memoize3<A, B, C, D, Key> where Key: Hashable {
         return v
     }
 }
+
+public struct Point {
+    public let x: Int
+    public let y: Int
+    
+    public init(_ x: Int, _ y: Int) {
+        self.x = x
+        self.y = y
+    }
+    
+    public static func -(_ lhs: Point, _ rhs: Point) -> Point { .init(lhs.x - rhs.x, lhs.y - rhs.y) }
+    public static func +(_ lhs: Point, _ rhs: Point) -> Point { .init(lhs.x + rhs.x, lhs.y + rhs.y) }
+    public static func *(_ lhs: Point, _ rhs: Int) -> Point { .init(lhs.x * rhs, lhs.y * rhs) }
+}
+
+extension Point: Hashable { }
