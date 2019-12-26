@@ -82,6 +82,18 @@ public func zip<A, B, C, D, E, F, Seq>(
     zip(a, zip(b, c, d, e, f)).map { a, bcdef in (a, bcdef.0, bcdef.1, bcdef.2, bcdef.3, bcdef.4) }
 }
 
+public func zip<A, B, C, D, E, F, G, Seq>(
+    _ a: Parser<A, Seq>,
+    _ b: Parser<B, Seq>,
+    _ c: Parser<C, Seq>,
+    _ d: Parser<D, Seq>,
+    _ e: Parser<E, Seq>,
+    _ f: Parser<F, Seq>,
+    _ g: Parser<G, Seq>
+) -> Parser<(A, B, C, D, E, F, G), Seq> {
+    zip(a, zip(b, c, d, e, f, g)).map { a, bcdefg in (a, bcdefg.0, bcdefg.1, bcdefg.2, bcdefg.3, bcdefg.4, bcdefg.5) }
+}
+
 public func zip<A, B, C, Seq>(
     _ a: Parser<A, Seq>,
     _ b: Parser<B, Seq>,
@@ -130,6 +142,19 @@ public func zip<A, B, C, D, E, F, G, Seq>(
     with g: @escaping (A, B, C, D, E, F) -> G)
     -> Parser<G, Seq> {
     zip(a, b, c, d, e, f).map(g)
+}
+
+public func zip<A, B, C, D, E, F, G, H, Seq>(
+    _ a: Parser<A, Seq>,
+    _ b: Parser<B, Seq>,
+    _ c: Parser<C, Seq>,
+    _ d: Parser<D, Seq>,
+    _ e: Parser<E, Seq>,
+    _ f: Parser<F, Seq>,
+    _ g: Parser<G, Seq>,
+    with h: @escaping (A, B, C, D, E, F, G) -> H)
+    -> Parser<H, Seq> {
+        zip(a, b, c, d, e, f, g).map(h)
 }
 
 extension Parser {
@@ -232,4 +257,12 @@ public func literal<A>(predicate: @escaping (A.Element) -> Bool) -> Parser<Void,
         input.removeFirst()
         return ()
     }
+}
+
+public let intParser = zip(
+    zeroOrMore(literal("-")),
+    optionalPrefix(while: { $0.isNumber }))
+    .map { sgn, val -> Int in
+        if sgn.count > 0 { return Int(val)! * -1 }
+        else { return Int(val)! }
 }

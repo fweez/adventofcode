@@ -415,3 +415,51 @@ final class Day11Tests: XCTestCase {
         day11.countPaintedPanels(input)
     }
 }
+
+@testable import day12
+
+final class Day12Tests: XCTestCase {
+    func testExample1() {
+        let input = """
+        <x=-1, y=0, z=2>
+        <x=2, y=-10, z=-7>
+        <x=4, y=-8, z=8>
+        <x=3, y=5, z=-1>
+        """[...]
+        let moons = input
+            .split(separator: "\n")
+            .compactMap { line -> Moon? in
+                var input = line[...]
+                return moonParser.run(&input)
+            }
+        let t1 = updateSystem(moons)
+        XCTAssertEqual(t1.first!.velocity, Vector3(3, -1, -1))
+        let t2 = updateSystem(t1)
+        XCTAssertEqual(t2.last!.position, Vector3(1, -4, 2))
+        XCTAssertEqual(t2.first!.velocity, Vector3(3, -2, -2))
+        let t10 = (1...10)
+            .reduce(moons) { system, _ in
+                updateSystem(system)
+            }
+        XCTAssertEqual(t10.first!.position, Vector3(2, 1, -3))
+        XCTAssertEqual(t10.last!.velocity, Vector3(1, -1, -1))
+        XCTAssertEqual(calculateTotalEnergy(t10), 179)
+    }
+    
+    func testGuesses() {
+        let input = """
+        <x=14, y=2, z=8>
+        <x=7, y=4, z=10>
+        <x=1, y=17, z=16>
+        <x=-4, y=-1, z=1>
+        """[...]
+        let moons = input
+            .split(separator: "\n")
+            .compactMap { line -> Moon? in
+                var input = line[...]
+                return moonParser.run(&input)
+            }
+        let result = getTotalEnergy(moons)
+        XCTAssertGreaterThan(result, 499)
+    }
+}

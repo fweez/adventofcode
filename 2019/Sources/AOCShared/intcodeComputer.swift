@@ -293,16 +293,6 @@ public func runIntcodeProgram(_ state: ProgramState) -> ProgramState? {
     return state
 }
 
-
-
-let intParser = zip(
-    zeroOrMore(literal("-")),
-    optionalPrefix(while: { $0.isNumber }))
-    .map { sgn, val -> Int in
-        if sgn.count > 0 { return Int(val)! * -1 }
-        else { return Int(val)! }
-}
-
 public let opcodeParser: Parser<[Int], String> = zeroOrMore(
     intParser,
     separatedBy: literal(","))

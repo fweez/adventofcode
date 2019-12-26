@@ -93,8 +93,8 @@ public struct Memoize3<A, B, C, D, Key> where Key: Hashable {
 }
 
 public struct Point {
-    public let x: Int
-    public let y: Int
+    public var x: Int
+    public var y: Int
     
     public init(_ x: Int, _ y: Int) {
         self.x = x
