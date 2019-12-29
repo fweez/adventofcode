@@ -6,6 +6,7 @@ public protocol ParserProtocol {
     
     var run: (inout Seq.SubSequence) -> Output? { get }
 }
+
 public struct Parser<A, B>: ParserProtocol where B: Collection {
     public typealias Output = A
     public typealias Seq = B
@@ -31,6 +32,11 @@ public extension Parser {
             }
             return matchB
         }
+    }
+    
+    func runStatic(_ s: Seq) -> Output? {
+        var ms = s[...]
+        return self.run(&ms)
     }
 }
 
@@ -266,3 +272,5 @@ public let intParser = zip(
         if sgn.count > 0 { return Int(val)! * -1 }
         else { return Int(val)! }
 }
+
+public let alphaParser: Parser<Substring, String> = hasPrefix(while: { $0.isLetter })
