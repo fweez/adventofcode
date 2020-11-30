@@ -1,0 +1,150 @@
+af AND ah -> ai
+NOT lk -> ll
+hz RSHIFT 1 -> is
+NOT go -> gp
+du OR dt -> dv
+x RSHIFT 5 -> aa
+at OR az -> ba
+eo LSHIFT 15 -> es
+ci OR ct -> cu
+b RSHIFT 5 -> f
+fm OR fn -> fo
+NOT ag -> ah
+v OR w -> x
+g AND i -> j
+an LSHIFT 15 -> ar
+1 AND cx -> cy
+jq AND jw -> jy
+iu RSHIFT 5 -> ix
+gl AND gm -> go
+NOT bw -> bx
+jp RSHIFT 3 -> jr
+hg AND hh -> hj
+bv AND bx -> by
+er OR es -> et
+kl OR kr -> ks
+et RSHIFT 1 -> fm
+e AND f -> h
+u LSHIFT 1 -> ao
+he RSHIFT 1 -> hx
+eg AND ei -> ej
+bo AND bu -> bw
+dz OR ef -> eg
+dy RSHIFT 3 -> ea
+gl OR gm -> gn
+da LSHIFT 1 -> du
+au OR av -> aw
+gj OR gu -> gv
+eu OR fa -> fb
+lg OR lm -> ln
+e OR f -> g
+NOT dm -> dn
+NOT l -> m
+aq OR ar -> as
+gj RSHIFT 5 -> gm
+hm AND ho -> hp
+ge LSHIFT 15 -> gi
+jp RSHIFT 1 -> ki
+hg OR hh -> hi
+lc LSHIFT 1 -> lw
+km OR kn -> ko
+eq LSHIFT 1 -> fk
+1 AND am -> an
+gj RSHIFT 1 -> hc
+aj AND al -> am
+gj AND gu -> gw
+ko AND kq -> kr
+ha OR gz -> hb
+bn OR by -> bz
+iv OR jb -> jc
+NOT ac -> ad
+bo OR bu -> bv
+d AND j -> l
+bk LSHIFT 1 -> ce
+de OR dk -> dl
+dd RSHIFT 1 -> dw
+hz AND ik -> im
+NOT jd -> je
+fo RSHIFT 2 -> fp
+hb LSHIFT 1 -> hv
+lf RSHIFT 2 -> lg
+gj RSHIFT 3 -> gl
+ki OR kj -> kk
+NOT ak -> al
+ld OR le -> lf
+ci RSHIFT 3 -> ck
+1 AND cc -> cd
+NOT kx -> ky
+fp OR fv -> fw
+ev AND ew -> ey
+dt LSHIFT 15 -> dx
+NOT ax -> ay
+bp AND bq -> bs
+NOT ii -> ij
+ci AND ct -> cv
+iq OR ip -> ir
+x RSHIFT 2 -> y
+fq OR fr -> fs
+bn RSHIFT 5 -> bq
+0 -> c
+14146 -> b
+d OR j -> k
+z OR aa -> ab
+gf OR ge -> gg
+df OR dg -> dh
+NOT hj -> hk
+NOT di -> dj
+fj LSHIFT 15 -> fn
+lf RSHIFT 1 -> ly
+b AND n -> p
+jq OR jw -> jx
+gn AND gp -> gq
+x RSHIFT 1 -> aq
+ex AND ez -> fa
+NOT fc -> fd
+bj OR bi -> bk
+as RSHIFT 5 -> av
+hu LSHIFT 15 -> hy
+NOT gs -> gt
+fs AND fu -> fv
+dh AND dj -> dk
+bz AND cb -> cc
+dy RSHIFT 1 -> er
+hc OR hd -> he
+fo OR fz -> ga
+t OR s -> u
+b RSHIFT 2 -> d
+NOT jy -> jz
+hz RSHIFT 2 -> ia
+kk AND kv -> kx
+ga AND gc -> gd
+fl LSHIFT 1 -> gf
+bn AND by -> ca
+NOT hr -> hs
+NOT bs -> bt
+lf RSHIFT 3 -> lh
+au AND av -> ax
+1 AND gd -> ge
+jr OR js -> jt
+fw AND fy -> fz
+NOT iz -> ja
+c LSHIFT 1 -> t
+dy RSHIFT 5 -> eb
+bp OR bq -> br
+NOT h -> i
+1 AND ds -> dt
+ab AND ad -> ae
+ap LSHIFT 1 -> bj
+br AND bt -> bu
+NOT ca -> cb
+NOT el -> em
+s LSHIFT 15 -> w
+gk OR gq -> gr
+ff AND fh -> fi
+kf LSHIFT 15 -> kj
+fp AND fv -> fx
+lh OR li -> lj
+bn RSHIFT 3 -> bp
+jp OR ka -> kb
+lw OR lv -> lx
+lx -> a
