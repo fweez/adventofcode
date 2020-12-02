@@ -15,7 +15,7 @@ func verifyPart1(policy: Policy, password: String) -> Bool {
                 .count)
 }
 
-func verifyPart2(policy: Policy, password: Array<Character>) -> Bool {
+func verifyPart2(policy: Policy, password: String) -> Bool {
     [password[(policy.required.first ?? Int.max) - 1],
      password[(policy.required.last ?? Int.max) - 1]]
         .filter { $0 == policy.char }
@@ -28,9 +28,9 @@ let policy: Parser<Policy, String> =
         literal("-"),
         intParser,
         literal(" "),
-        alphaParser)
+        characterParser)
     .map {
-        Policy(required: $0.0...$0.2, char: $0.4.first ?? "1")
+        Policy(required: $0.0...$0.2, char: $0.4)
     }
 
 let policyAndPassword: Parser<(Policy, String), String> =
@@ -46,16 +46,13 @@ public func parse(_ input: String) -> [(policy: Policy, password: String)] {
 
 public func part1(_ parsedInput: [(Policy, String)]) {
     let validPasswords = parsedInput
-        .map(verifyPart1)
-        .filter { $0 }
+        .filter(verifyPart1)
         .count
     print("Part 1: \(validPasswords)") }
 
 public func part2(_ parsedInput: [(Policy, String)]) {
     let validPasswords = parsedInput
-        .map { ($0.0, Array($0.1)) }
-        .map(verifyPart2)
-        .filter { $0 }
+        .filter(verifyPart2)
         .count
     print("Part 2: \(validPasswords)")
 }

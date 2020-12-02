@@ -124,3 +124,9 @@ extension Point: Equatable {
 extension Point: CustomStringConvertible {
     public var description: String { return "(\(x), \(y))" }
 }
+
+public extension String {
+    subscript(index: Int) -> Character {
+        self[String.Index(utf16Offset: index, in: self)]
+    }
+}

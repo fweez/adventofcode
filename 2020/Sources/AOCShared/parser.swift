@@ -274,3 +274,9 @@ public let intParser = zip(
 }
 
 public let alphaParser: Parser<Substring, String> = hasPrefix(while: { $0.isLetter })
+ 
+public let characterParser = Parser<Character, String> { input in
+    guard let c = input.first else { return nil }
+    input.removeFirst()
+    return c
+}
