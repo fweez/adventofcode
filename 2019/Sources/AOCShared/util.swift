@@ -107,3 +107,13 @@ public struct Point {
 }
 
 extension Point: Hashable { }
+
+extension Point: Equatable {
+    public static func ==(lhs: Point, rhs: Point) -> Bool {
+        lhs.x == rhs.x && lhs.y == rhs.y
+    }
+}
+
+extension Point: CustomStringConvertible {
+    public var description: String { return "(\(x), \(y))" }
+}

@@ -133,10 +133,6 @@ func pointsIn(_ segment: Segment) -> [Point] {
     }
 }
 
-func manhattanDist(_ p1: Point, _ p2: Point = Point(0, 0)) -> Int {
-    abs(p1.x - p2.x) + abs(p1.y - p2.y)
-}
-
 var intersections: [Point] = []
 func distToClosestIntersection(_ lines: [String.SubSequence]) -> Int {
     let wires: [[Direction]] = textToWires(lines)
@@ -148,6 +144,10 @@ func distToClosestIntersection(_ lines: [String.SubSequence]) -> Int {
     return intersections
         .map { manhattanDist($0) }
         .reduce(Int.max, min)
+}
+
+func manhattanDist(_ p1: Point, _ p2: Point = Point(0, 0)) -> Int {
+    abs(p1.x - p2.x) + abs(p1.y - p2.y)
 }
 
 func distToLowestSteps(_ lines: [String.SubSequence]? = nil) -> Int {

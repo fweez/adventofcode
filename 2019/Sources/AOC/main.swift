@@ -68,7 +68,7 @@ case "day11": run("11", day11.parse, day11.part1, day11.part2)
 case "day12": run("12", day12.parse, day12.part1, day12.part2)
 case "day13": run("13", day13.parse, day13.part1, day13.part2)
 case "day14": run("14", day14.parse, day14.part1, day14.part2)
-
+case "day15": run("15", day15.parse, day15.part1, day15.part2)
 default:
     preconditionFailure("Unknown day \(day)")
 }
