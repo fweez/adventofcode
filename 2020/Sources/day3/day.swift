@@ -24,12 +24,9 @@ func countTrees(_ pattern: [[Bool]], slope: (x: Int, y: Int)) -> Int {
 }
 
 func multiSlope(_ pattern: [[Bool]]) -> Int {
-    let f = curry(countTrees)(pattern)
-    return f((1,1)) *
-        f((3,1)) *
-        f((5,1)) *
-        f((7,1)) *
-        f((1,2))
+    [(1,1), (3,1), (5,1), (7,1), (1,2)]
+        .map(curry(countTrees)(pattern))
+        .reduce(1, *)
 }
 
 public func part1(_ parsedInput: [[Bool]]) { print("Part 1: \(countTrees(parsedInput, slope: (3,1)))") }
