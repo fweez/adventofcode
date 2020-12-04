@@ -274,6 +274,8 @@ public let intParser = zip(
 }
 
 public let alphaParser: Parser<Substring, String> = hasPrefix(while: { $0.isLetter })
+
+public let nonWhitespaceParser: Parser<Substring, String> = hasPrefix(while: { $0.isWhitespace == false })
  
 public let characterParser = Parser<Character, String> { input in
     guard let c = input.first else { return nil }
