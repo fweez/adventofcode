@@ -8,6 +8,22 @@ public protocol DayProtocol {
     func part2(input: T) -> Void
 }
 
+public func time(_ f: () -> Void) -> String {
+    let nf = NumberFormatter()
+    nf.maximumFractionDigits = 5
+    let start = Date()
+    f()
+    let elapsed = Date().timeIntervalSince(start)
+    return nf.string(for: elapsed) ?? "Couldn't format time \(elapsed)"
+}
+
+public func run<A>(input: String, _ parse: (String) -> A, _ p1: (A) -> Void, _ p2: (A) -> Void) -> Void {
+    var parsedInput: A?
+    print("Input file parsed in \(time({ parsedInput = parse(input) }))s")
+    print("Part 1 completed in \(time({ p1(parsedInput!) }))")
+    print("Part 2 completed in \(time({ p2(parsedInput!) }))")
+}
+
 public func ingestFile(_ filename: String) -> [String.SubSequence] {
     do {
         return try String(contentsOfFile: filename)
