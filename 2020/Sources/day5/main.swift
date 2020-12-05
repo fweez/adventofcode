@@ -11,26 +11,22 @@ run(input: input, parse, part1, part2)
 
 public typealias ParsedStructure = [Int]
 
+func searchReducer(_ a: (Int, Int), _ c: Character) -> (Int, Int) {
+    switch c {
+    case "F", "L": return (a.0, a.1 / 2)
+    case "B", "R": return (a.0 + a.1 / 2, a.1 / 2)
+    default: fatalError("Unexpected character for row selection: \(c)")
+    }
+}
+
 func seat(_ s: Substring) -> (row: Int, col: Int) {
     (s
         .prefix(7)
-        .reduce((position: 0, length: 128)) { a, c in
-            switch c {
-            case "F": return (a.0, a.1 / 2)
-            case "B": return (a.0 + a.1 / 2, a.1 / 2)
-            default: fatalError("Unexpected character for row selection: \(c)")
-            }
-        }
+        .reduce((position: 0, length: 128), searchReducer)
         .position,
      s
         .suffix(3)
-        .reduce((position: 0, length: 8)) { a, c in
-            switch c {
-            case "L": return (a.0, a.1 / 2)
-            case "R": return (a.0 + a.1 / 2, a.1 / 2)
-            default: fatalError("Unexpected character for row selection: \(c)")
-            }
-        }
+        .reduce((position: 0, length: 8), searchReducer)
         .position)
 }
 
