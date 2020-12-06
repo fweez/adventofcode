@@ -12,20 +12,11 @@ run(input: input, parse, part1, part2)
 public typealias ParsedStructure = [[Substring]]
 
 public func parse(_ input: String) -> ParsedStructure {
-    input
-        .split(separator: "\n", omittingEmptySubsequences: false)
-        .reduce([]) { accum, s in
-            guard s.isEmpty == false else {
-                return accum + [[]]
-            }
-            guard var curr = accum.last else {
-                return accum + [[s]]
-            }
-            curr.append(s)
-            return accum.prefix(accum.count - 1) + [curr]
-        }
-        
+    let group = zeroOrMore(alphaParser, separatedBy: literal("\n"))
+    let allGroups = zeroOrMore(group, separatedBy: literal("\n\n"))
+    return allGroups.runStatic(input) ?? []
 }
+
 public func part1(_ parsedInput: ParsedStructure) {
     let count = parsedInput
         .reduce([Set<Character>()]) { accum, answers in
