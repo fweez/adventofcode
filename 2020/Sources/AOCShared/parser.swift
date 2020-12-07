@@ -209,6 +209,7 @@ public func oneOf<A, Seq>(_ parsers: [Parser<A, Seq>]) -> Parser<A, Seq> {
 public func optionalPrefix<A>(while p: @escaping (A.Element) -> Bool) -> Parser<A.SubSequence, A> where A: Collection {
     Parser<A.SubSequence, A> { input in
         let prefix = input.prefix(while: p)
+        guard prefix.count > 0 else { return nil }
         input.removeFirst(prefix.count)
         return prefix
     }
@@ -217,25 +218,26 @@ public func optionalPrefix<A>(while p: @escaping (A.Element) -> Bool) -> Parser<
 public func hasPrefix<A>(while p: @escaping (A.Element) -> Bool) -> Parser<A.SubSequence, A> where A: Collection {
     optionalPrefix(while: p)
         .flatMap { str in
-            guard str.count > 0 else { return .never }
+            guard str.count > 0 else {
+                return .never }
             return .always(str)
     }
 }
 
 public extension Collection where Element: Equatable {
     func hasPrefix<A>(_ seq: A) -> Bool where A: Collection, A.Element == Self.Element {
-        guard self.count >= seq.count else { return false }
-        for (offset, elt) in seq.enumerated() {
-            let idx = self.index(self.startIndex, offsetBy: offset)
-            guard elt == self[idx] else { return false }
-        }
-        return true
+        guard self.count >= seq.count else {
+            return false }
+        return zip(self.prefix(seq.count), seq)
+            .allSatisfy(==)
     }
 }
 
 public func literal<A>(_ literalSequence: A) -> Parser<Void, A> where A: Collection, A.Element: Equatable {
     return Parser<Void, A> { input in
-        guard input.hasPrefix(literalSequence) else { return nil }
+        guard input.hasPrefix(literalSequence) else {
+            return nil
+        }
         input.removeFirst(literalSequence.count)
         return ()
     }
@@ -243,7 +245,9 @@ public func literal<A>(_ literalSequence: A) -> Parser<Void, A> where A: Collect
 
 public func literal<A>(_ literal: A.Element) -> Parser<Void, A> where A: Collection, A.Element: Equatable {
     return Parser<Void, A> { input in
-        guard input.first == literal else { return nil }
+        guard input.first == literal else {
+            return nil
+        }
         input.removeFirst()
         return ()
     }
