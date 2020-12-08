@@ -56,34 +56,35 @@ func parse(_ input: String) -> ParsedStructure {
         .compactMap { instructionParser.runStatic(String($0)) }
 }
 
+var originalSeenIndices: Set<Int> = []
 func part1(_ parsedInput: ParsedStructure) {
-    let gb = runToLoopOrCompletion(instructions: parsedInput)
+    let (gb, s) = runToLoopOrCompletion(instructions: parsedInput)
+    originalSeenIndices = s
     print("Part 1: \(gb.accumulator)")
 }
 
-func runToLoopOrCompletion(instructions: [Instruction]) -> Gameboy {
+func runToLoopOrCompletion(instructions: [Instruction]) -> (Gameboy, Set<Int>) {
     var gb = Gameboy(accumulator: 0, ip: 0)
     var seenIndices = Set<Int>()
     while true {
         seenIndices.insert(gb.ip)
-        if gb.ip == instructions.count { return gb }
+        if gb.ip == instructions.count { return (gb, seenIndices) }
         guard gb.ip < instructions.count else { fatalError("ip \(gb.ip) went past end of instruction list \(instructions.count)")}
         gb = gb.run(instructions[gb.ip])
-        guard seenIndices.contains(gb.ip) == false else { return gb }
+        guard seenIndices.contains(gb.ip) == false else { return (gb, seenIndices) }
     }
 }
 
 func part2(_ instructions: ParsedStructure) {
-    let gb = instructions
-        .enumerated()
-        .map { (t: (index: Int, instruction: Instruction)) -> Gameboy in
+    let gb = originalSeenIndices
+        .map { index -> Gameboy in
             var instructions = instructions
-            switch t.instruction {
+            switch instructions[index] {
             case .acc: return Gameboy(accumulator: 0, ip: 0)
-            case .nop(let i): instructions[t.index] = .jmp(i)
-            case .jmp(let i): instructions[t.index] = .nop(i)
+            case .nop(let i): instructions[index] = .jmp(i)
+            case .jmp(let i): instructions[index] = .nop(i)
             }
-            return runToLoopOrCompletion(instructions: instructions)
+            return runToLoopOrCompletion(instructions: instructions).0
         }
         .first { $0.ip == instructions.count }
         
