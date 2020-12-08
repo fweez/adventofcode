@@ -40,6 +40,18 @@ public extension Parser {
     }
 }
 
+public extension Parser {
+    func debug() -> Parser<A, B> {
+        Parser<A, B> { i in
+            guard let v = self.run(&i) else {
+                print("failed at input \(i)")
+                return nil
+            }
+            return v
+        }
+    }
+}
+
 public func zip<A, B, Seq>(_ a: Parser<A, Seq>, _ b: Parser<B, Seq>) -> Parser<(A, B), Seq> {
     Parser<(A, B), Seq> { str -> (A, B)? in
         let orig = str

@@ -9,9 +9,84 @@ guard let inputFile = Bundle.module.url(forResource: "input", withExtension: "tx
 
 run(input: input, parse, part1, part2)
 
-public typealias ParsedStructure = Int
+enum Instruction: CaseIterable {
+    case acc(Int)
+    case jmp(Int)
+    case nop(Int)
+    
+    static var allCases: [Instruction] {
+        [.acc(Int.min), .jmp(Int.min), .nop(Int.min)]
+    }
+    
+    static let sign = oneOf([literal("+", 1), literal("-", -1)])
+    static let instructionInt = zip(sign, intParser).map { $0 * $1 }
+    
+    static func instructionParserMaker(_ key: String, f: @escaping (Int) -> Instruction) -> Parser<Instruction, String> {
+        zip(literal("\(key) "), instructionInt).map { _, i in f(i) }
+    }
+    
+    var parser: Parser<Instruction, String> {
+        switch self {
+        case .acc: return Self.instructionParserMaker("acc", f: Self.acc)
+        case .jmp: return Self.instructionParserMaker("jmp", f: Self.jmp)
+        case .nop: return Self.instructionParserMaker("nop", f: Self.nop)
+        }
+    }
+}
 
-public func parse(_ input: String) -> ParsedStructure { 1 }
-public func part1(_ parsedInput: ParsedStructure) { print("Part 1: ") }
-public func part2(_ parsedInput: ParsedStructure) { print("Part 2: ") }
+struct Gameboy {
+    let accumulator: Int
+    let ip: Int
+    
+    func run(_ i: Instruction) -> Gameboy {
+        switch i {
+        case .acc(let i): return Gameboy(accumulator: accumulator + i, ip: ip + 1)
+        case .jmp(let i): return Gameboy(accumulator: accumulator, ip: ip + i)
+        case .nop: return Gameboy(accumulator: accumulator, ip: ip + 1)
+        }
+    }
+}
+
+typealias ParsedStructure = [Instruction]
+
+func parse(_ input: String) -> ParsedStructure {
+    let instructionParser = oneOf(Instruction.allCases.map { $0.parser })
+    return input
+        .split(separator: "\n")
+        .compactMap { instructionParser.runStatic(String($0)) }
+}
+
+func part1(_ parsedInput: ParsedStructure) {
+    let gb = runToLoopOrCompletion(instructions: parsedInput)
+    print("Part 1: \(gb.accumulator)")
+}
+
+func runToLoopOrCompletion(instructions: [Instruction]) -> Gameboy {
+    var gb = Gameboy(accumulator: 0, ip: 0)
+    var seenIndices = Set<Int>()
+    while true {
+        seenIndices.insert(gb.ip)
+        if gb.ip == instructions.count { return gb }
+        guard gb.ip < instructions.count else { fatalError("ip \(gb.ip) went past end of instruction list \(instructions.count)")}
+        gb = gb.run(instructions[gb.ip])
+        guard seenIndices.contains(gb.ip) == false else { return gb }
+    }
+}
+
+func part2(_ instructions: ParsedStructure) {
+    let gb = instructions
+        .enumerated()
+        .map { (t: (index: Int, instruction: Instruction)) -> Gameboy in
+            var instructions = instructions
+            switch t.instruction {
+            case .acc: return Gameboy(accumulator: 0, ip: 0)
+            case .nop(let i): instructions[t.index] = .jmp(i)
+            case .jmp(let i): instructions[t.index] = .nop(i)
+            }
+            return runToLoopOrCompletion(instructions: instructions)
+        }
+        .first { $0.ip == instructions.count }
+        
+    print("Part 2: \(gb?.accumulator ?? Int.min)")
+}
 
