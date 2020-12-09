@@ -112,6 +112,56 @@ public func zip<A, B, C, D, E, F, G, Seq>(
     zip(a, zip(b, c, d, e, f, g)).map { a, bcdefg in (a, bcdefg.0, bcdefg.1, bcdefg.2, bcdefg.3, bcdefg.4, bcdefg.5) }
 }
 
+@_functionBuilder
+public struct InstructionBuilder {
+    static func buildBlock<A, B, Seq: Collection>(
+        _ a: Parser<A, Seq>,
+        _ b: Parser<B, Seq>)
+    -> Parser<(A, B), Seq> { zip(a, b) }
+    
+    static func buildBlock<A, B, C, Seq>(
+        _ a: Parser<A, Seq>,
+        _ b: Parser<B, Seq>,
+        _ c: Parser<C, Seq>)
+    -> Parser<(A, B, C), Seq> { zip(a, b, c) }
+    
+    static func buildBlock<A, B, C, D, Seq>(
+        _ a: Parser<A, Seq>,
+        _ b: Parser<B, Seq>,
+        _ c: Parser<C, Seq>,
+        _ d: Parser<D, Seq>)
+        -> Parser<(A, B, C, D), Seq> { zip(a, b, c, d) }
+    
+    static func buildBlock<A, B, C, D, E, Seq>(
+        _ a: Parser<A, Seq>,
+        _ b: Parser<B, Seq>,
+        _ c: Parser<C, Seq>,
+        _ d: Parser<D, Seq>,
+        _ e: Parser<E, Seq>)
+    -> Parser<(A, B, C, D, E), Seq> { zip(a, b, c, d, e) }
+    
+    static func buildBlock<A, B, C, D, E, F, Seq>(
+        _ a: Parser<A, Seq>,
+        _ b: Parser<B, Seq>,
+        _ c: Parser<C, Seq>,
+        _ d: Parser<D, Seq>,
+        _ e: Parser<E, Seq>,
+        _ f: Parser<F, Seq>)
+    -> Parser<(A, B, C, D, E, F), Seq> { zip(a, b, c, d, e, f) }
+    
+    static func buildBlock<A, B, C, D, E, F, G, Seq>(
+        _ a: Parser<A, Seq>,
+        _ b: Parser<B, Seq>,
+        _ c: Parser<C, Seq>,
+        _ d: Parser<D, Seq>,
+        _ e: Parser<E, Seq>,
+        _ f: Parser<F, Seq>,
+        _ g: Parser<G, Seq>)
+    -> Parser<(A, B, C, D, E, F, G), Seq> { zip(a, b, c, d, e, f, g) }
+}
+
+func zip<A, B>(@InstructionBuilder f: () -> Parser<A, B>) -> Parser<A, B> { f() }
+
 public func zip<A, B, C, Seq>(
     _ a: Parser<A, Seq>,
     _ b: Parser<B, Seq>,
@@ -298,3 +348,4 @@ public let characterParser = Parser<Character, String> { input in
     input.removeFirst()
     return c
 }
+
