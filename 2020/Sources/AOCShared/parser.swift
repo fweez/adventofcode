@@ -280,8 +280,7 @@ public func optionalPrefix<A>(while p: @escaping (A.Element) -> Bool) -> Parser<
 public func hasPrefix<A>(while p: @escaping (A.Element) -> Bool) -> Parser<A.SubSequence, A> where A: Collection {
     optionalPrefix(while: p)
         .flatMap { str in
-            guard str.count > 0 else {
-                return .never }
+            guard str.count > 0 else { return .never }
             return .always(str)
     }
 }
@@ -328,6 +327,15 @@ public func literal<A>(predicate: @escaping (A.Element) -> Bool) -> Parser<Void,
         guard let f = input.first, predicate(f) else { return nil }
         input.removeFirst()
         return ()
+    }
+}
+
+public func take<A, B>(_ n: Int, _ p: Parser<A, B>) -> Parser<[A], B> {
+    Parser<[A], B> { str -> [A]? in
+        let matches = (0..<n)
+            .compactMap { _ in p.run(&str) }
+        guard matches.count == n else { return nil }
+        return matches
     }
 }
 

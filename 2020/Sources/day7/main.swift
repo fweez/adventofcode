@@ -28,12 +28,10 @@ public func parse(_ input: String) -> ParsedStructure {
         .map(Dictionary.init(uniqueKeysWithValues:))
     let container = zip(
         bagDescription,
-        literal(" "),
-        alphaParser,
-        literal(" "),
+        literal(" contain "),
         allContained,
         literal(".\n"))
-        .map { color, _, _, _, contained, _ in
+        .map { color, _, contained, _ in
             (color, contained)
         }    
     let emptyContainer = zip(
