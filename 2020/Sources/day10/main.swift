@@ -36,7 +36,7 @@ func pathsToEnd(from: Int, to: Int, _ adapters: Set<Int>) -> Int {
     guard adapters.contains(from) else { return 0 }
     if let v = knownPaths[from] { return v }
     let v = (1...3)
-        .compactMap { pathsToEnd(from: from + $0, to: to, adapters) }
+        .map { pathsToEnd(from: from + $0, to: to, adapters) }
         .reduce(0, +)
     knownPaths[from] = v
     return v
