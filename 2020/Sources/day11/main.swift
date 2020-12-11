@@ -104,16 +104,13 @@ func parse(_ input: String) -> ParsedStructure {
 
 func debug(_ f: ParsedStructure) { f.forEach { print(String($0.map { $0.rawValue })) } }
 
-func runToSteadyState(_ f: ParsedStructure, rules: @escaping (ParsedStructure, Int, Int) -> Position) -> Int {
-    var last = tick(f, rules: rules)
-    while true {
-        let new = tick(last, rules: rules)
-        let count = countOccupied(new)
-        if count == countOccupied(last) {
-            return count
-        } else {
-            last = new
-        }
+func runToSteadyState(_ curr: ParsedStructure, rules: @escaping (ParsedStructure, Int, Int) -> Position) -> Int {
+    let new = tick(curr, rules: rules)
+    let count = countOccupied(new)
+    if count == countOccupied(curr) {
+        return count
+    } else {
+        return runToSteadyState(new, rules: rules)
     }
 }
 
