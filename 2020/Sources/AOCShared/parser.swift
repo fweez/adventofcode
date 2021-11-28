@@ -112,7 +112,7 @@ public func zip<A, B, C, D, E, F, G, Seq>(
     zip(a, zip(b, c, d, e, f, g)).map { a, bcdefg in (a, bcdefg.0, bcdefg.1, bcdefg.2, bcdefg.3, bcdefg.4, bcdefg.5) }
 }
 
-@_functionBuilder
+@resultBuilder
 public struct InstructionBuilder {
     static func buildBlock<A, B, Seq: Collection>(
         _ a: Parser<A, Seq>,
