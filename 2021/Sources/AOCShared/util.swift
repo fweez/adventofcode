@@ -1,5 +1,6 @@
 import Foundation
 import Overture
+import Parsing
 
 public protocol DayProtocol {
     associatedtype T
@@ -24,6 +25,23 @@ public func run<A>(input: String, _ parse: (String) -> A, _ p1: (A) -> Void, _ p
     print("Part 2 completed in \(time({ p2(parsedInput!) }))")
 }
 
+public func run<A>(input: String, _ parser: AnyParser<Substring, A>, _ p1: (A) -> Void, _ p2: (A) -> Void) {
+    var parsedInput: A?
+    let parseTime = time {
+        let inView = input[...]
+        let (p, rest) = parser.parse(inView)
+        let leftovers = rest.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard leftovers.count == 0 else { fatalError("Parser has leftovers: \(leftovers)") }
+        parsedInput = p
+    }
+    
+    guard let parsedInput = parsedInput else { fatalError("Parser failed to parse anything!") }
+    
+    print("Input file parsed in \(parseTime)s")
+    print("Part 1 completed in \(time({ p1(parsedInput) }))")
+    print("Part 2 completed in \(time({ p2(parsedInput) }))")
+}
+
 public func ingestFile(_ filename: String) -> [String.SubSequence] {
     do {
         return try String(contentsOfFile: filename)
@@ -33,39 +51,11 @@ public func ingestFile(_ filename: String) -> [String.SubSequence] {
     }
 }
 
-/// Run a parser over the lines of the given file, producing a list of parsed objects
-/// - Parameters:
-///   - parser: Parser of lines in the file to some object
-///   - filename: Name of the file to parse
-/// - Returns: list of parsed objects
-public func parseFile<A>(_ parser: Parser<A, String>, _ filename: String) -> [A] {
-    ingestFile(filename)
-        .enumerated()
-        .map { lineNumber, originalInput -> A in
-            var input = originalInput[...]
-            guard let match = parser.run(&input) else {
-                preconditionFailure("Couldn't parse line \(lineNumber), which is: \n\(originalInput)")
-            }
-            guard input.count == 0 else {
-                preconditionFailure("""
-                Didn't completely parse line \(lineNumber), which is:
-                \(originalInput)
-
-                Remaining unparsed text, in quotes:
-                '\(input)'
-                """)
-            }
-            return match
-        }
-}
-
 public func force<A>(_ a: A?) -> A { a! }
 
 public let intify: (String.SubSequence) -> Int = pipe(String.init, Int.init, force)
 public let divideBy: (Double) -> (Double) -> Double = flip(curry(/))
 public let subtractBy: (Int) -> (Int) -> Int = flip(curry(-))
-
-public let number: Parser<Substring, String> = optionalPrefix(while: { $0.isNumber })
 
 public func memoize<A, B>(_ f: @escaping (A) -> B) -> (A) -> B where A: Hashable {
     var memoization: [A: B] = [:]

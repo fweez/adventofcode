@@ -15,16 +15,21 @@ let package = Package(
     ],
     dependencies: [
         .package(name: "Overture", url: "https://github.com/pointfreeco/swift-overture.git", from: "0.5.0"),
+        .package(name: "swift-parsing", url: "https://github.com/pointfreeco/swift-parsing", .branch("main")),
     ],
     targets: [
         .target(
             name: "AOCShared",
-            dependencies: ["Overture"])
+            dependencies: ["Overture"]),
     ]
         + (1...24).map { i in
             .target(
                 name: "day\(i)",
-                dependencies: ["AOCShared", "Overture"],
+                dependencies: [
+                    "Overture",
+                    "AOCShared",
+                    .product(name:"Parsing", package:"swift-parsing")
+                ],
                 resources: [.process("input.txt")])
         }
 )

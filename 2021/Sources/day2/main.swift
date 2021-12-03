@@ -1,13 +1,12 @@
 import AOCShared
 import Foundation
 import Overture
+import Parsing
 
 guard let inputFile = Bundle.module.url(forResource: "input", withExtension: "txt"),
       let input = try? String(contentsOf: inputFile) else {
     fatalError("Could not get contents of input file")
 }
-
-run(input: input, parse, part1, part2)
 
 public enum Direction {
     case forward(Int)
@@ -17,19 +16,19 @@ public enum Direction {
 
 public typealias ParsedStructure = [Direction]
 
-public func parse(_ input: String) -> ParsedStructure {
-    input.split(separator: "\n")
-        .map { line in
-            let c = line.split(separator: " ")
-            guard let s = c.last, let i = Int(s) else { fatalError() }
-            switch c.first {
-            case "forward": return .forward(i)
-            case "down": return .down(i)
-            case "up": return .up(i)
-            default: fatalError()
-            }
-        }
-}
+let forward = "forward "
+    .take(Int.parser())
+    .map(Direction.forward)
+let down = "down "
+    .take(Int.parser())
+    .map(Direction.down)
+let up = "up "
+    .take(Int.parser())
+    .map(Direction.up)
+let dir = OneOfMany(forward, down, up)
+let parser = Many(dir, separator: "\n").eraseToAnyParser()
+
+run(input: input, parser, part1, part2)
 
 public func part1(_ parsedInput: ParsedStructure) {
     let dest = parsedInput
