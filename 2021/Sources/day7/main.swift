@@ -2,6 +2,7 @@ import AOCShared
 import Foundation
 import Overture
 import Parsing
+import Algorithms
 
 guard let inputFile = Bundle.module.url(forResource: "input", withExtension: "txt"),
       let input = try? String(contentsOf: inputFile) else {
@@ -13,13 +14,18 @@ public typealias ParsedStructure = [Int]
 let parser: AnyParser<Substring, ParsedStructure> = Many(Int.parser(), separator: ",").eraseToAnyParser()
 run(input: input, parser, part1, part2)
 
-func p1(_ parsedInput: ParsedStructure) -> Int {
+func getMin(_ parsedInput: ParsedStructure, cost: @escaping (Int) -> Int) -> Int {
     (0...parsedInput.max()!)
+        .lazy
         .map { p in
-            parsedInput.reduce(0) { a, v in a + abs(v - p) }
+            parsedInput.reduce(0) { a, v in a + cost(abs(v - p)) }
         }
-        .min()!
+        .adjacentPairs()
+        .first { a, b in a < b }!
+        .0
 }
+
+func p1(_ parsedInput: ParsedStructure) -> Int { getMin(parsedInput) { $0 } }
 
 public func part1(_ parsedInput: ParsedStructure) {
     let a = p1(parsedInput)
@@ -27,26 +33,7 @@ public func part1(_ parsedInput: ParsedStructure) {
     print("Part 1: \(a)")
 }
 
-func p2(_ parsedInput: ParsedStructure) -> Int {
-    var costMemo: [Int] = [0]
-    func p2cost(_ v: Int) -> Int {
-        // don't blow the stack with recursion, no tco here
-        var curr = costMemo.count - 1
-        while curr < v {
-            let thisV = costMemo[curr]
-            costMemo.append(thisV + curr + 1)
-            curr += 1
-        }
-        
-        return costMemo[v]
-    }
-    
-    return (0...parsedInput.max()!)
-        .map { p in
-            parsedInput.reduce(0) { a, v in a + p2cost(abs(p - v)) }
-        }
-        .min()!
-}
+func p2(_ parsedInput: ParsedStructure) -> Int { getMin(parsedInput) { n in (n * (n + 1)) / 2 } }
 
 public func part2(_ parsedInput: ParsedStructure) {
     let a = p2(parsedInput)
