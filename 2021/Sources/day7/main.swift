@@ -17,9 +17,7 @@ run(input: input, parser, part1, part2)
 func getMin(_ parsedInput: ParsedStructure, cost: @escaping (Int) -> Int) -> Int {
     (0...parsedInput.max()!)
         .lazy
-        .map { p in
-            parsedInput.reduce(0) { a, v in a + cost(abs(v - p)) }
-        }
+        .map { p in parsedInput.reduce(0) { a, v in a + cost(abs(v - p)) } }
         .adjacentPairs()
         .first { a, b in a < b }!
         .0

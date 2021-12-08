@@ -136,3 +136,5 @@ public extension String {
         self[String.Index(utf16Offset: index, in: self)]
     }
 }
+
+public var intList: AnyParser<Substring, [Int]> = Many(Int.parser(), separator: ",").eraseToAnyParser()
